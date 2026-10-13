@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EnergyWatch &mdash; Smart Utility Consumption Dashboard</title>
+<meta name="description" content="EnergyWatch helps households monitor electricity usage, predict future consumption, detect anomalies and manage energy costs with AI-powered forecasting."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --em-950:#022c22;--em-800:#065f46;--em-700:#047857;--em-600:#059669;
+  --em-500:#10b981;--em-400:#34d399;--em-200:#a7f3d0;--em-100:#d1fae5;--em-50:#ecfdf5;
+  --yellow:#facc15;--amber:#f59e0b;--red:#ef4444;
+  --n-900:#171717;--n-700:#404040;--n-500:#737373;--n-400:#a3a3a3;
+  --n-200:#e5e5e5;--n-100:#f5f5f5;--n-50:#fafafa;--white:#ffffff;--page-bg:#f4f7f5;
+  --sh-sm:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:0 4px 14px rgba(0,0,0,.09),0 2px 4px rgba(0,0,0,.04);
+  --r:10px;--rs:6px
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);color:var(--n-900);font-size:14px;line-height:1.5;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--n-200);border-radius:3px}
+
+/* NAVBAR */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:100;height:60px;background:var(--white);border-bottom:1px solid var(--n-200);display:flex;align-items:center;justify-content:space-between;padding:0 28px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.nav-left{display:flex;align-items:center;gap:10px}
+.logo-box{width:32px;height:32px;background:var(--em-800);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-brand{font-size:16px;font-weight:700;color:var(--em-950);letter-spacing:-.3px}
+.nav-brand span{color:var(--em-600)}
+.nav-center{display:flex;align-items:center;gap:4px}
+.nav-link{padding:6px 14px;font-size:13px;font-weight:500;color:var(--n-500);border-radius:var(--rs);transition:color .15s,background .15s;cursor:pointer;position:relative;user-select:none}
+.nav-link:hover{color:var(--em-700);background:var(--em-50)}
+.nav-link.active{color:var(--em-700);font-weight:600;background:var(--em-50)}
+.nav-link.active::after{content:'';position:absolute;bottom:-1px;left:14px;right:14px;height:2px;background:var(--em-600);border-radius:1px}
+.nav-right{display:flex;align-items:center;gap:12px}
+.bell{position:relative;width:36px;height:36px;border-radius:8px;border:1px solid var(--n-200);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,border-color .15s}
+.bell:hover{background:var(--em-50);border-color:var(--em-200)}
+.bell-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--white)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--em-800);color:var(--white);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--em-200);transition:border-color .15s}
+.avatar:hover{border-color:var(--em-500)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+.hamburger span{display:block;width:22px;height:2px;background:var(--n-700);border-radius:2px}
+
+/* LAYOUT */
+.page-wrapper{padding-top:60px;min-height:100vh}
+.content-grid{display:grid;grid-template-columns:1fr 288px;gap:24px;max-width:1400px;margin:0 auto;padding:28px 28px 48px;align-items:start}
+.main-col{display:flex;flex-direction:column;gap:24px;min-width:0}
+.right-panel{display:flex;flex-direction:column;gap:20px;position:sticky;top:84px}
+
+/* CARD */
+.card{background:var(--white);border:1px solid var(--n-200);border-radius:var(--r);box-shadow:var(--sh-sm);padding:20px;transition:box-shadow .2s,border-color .2s}
+.card:hover{box-shadow:var(--sh-md);border-color:var(--em-200)}
+.card-ttl{font-size:11px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.7px}
+
+/* WELCOME */
+.welcome-strip{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:0 2px}
+.welcome-strip h1{font-size:22px;font-weight:700;color:var(--em-950);letter-spacing:-.4px}
+.welcome-strip p{font-size:13px;color:var(--n-500);margin-top:2px}
+.status-chip{display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--n-200);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--n-500);font-weight:500;box-shadow:var(--sh-sm)}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--em-500);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+/* METRIC CARDS */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.mc{background:var(--white);border:1px solid var(--n-200);border-radius:var(--r);box-shadow:var(--sh-sm);padding:18px 18px 16px;transition:box-shadow .2s,border-color .2s,transform .2s;cursor:default}
+.mc:hover{box-shadow:var(--sh-md);border-color:var(--em-200);transform:translateY(-2px)}
+.mc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.mc-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ic-g{background:var(--em-50)}.ic-a{background:#fffbeb}.ic-b{background:#eff6ff}.ic-y{background:#fefce8}
+.mc-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px}
+.badge-up{background:#fef3c7;color:#92400e}
+.badge-n{background:var(--n-100);color:var(--n-500)}
+.mc-num{font-size:32px;font-weight:700;color:var(--em-950);letter-spacing:-1px;line-height:1}
+.mc-unit{font-size:13px;font-weight:500;color:var(--n-400);margin-left:3px}
+.mc-lbl{font-size:12px;font-weight:500;color:var(--n-500);margin-top:6px}
+.mc-sub{font-size:11px;color:var(--n-400);margin-top:4px}
+.mc-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--em-800);color:var(--white);padding:2px 8px;border-radius:4px;margin-top:6px}
+.dy{width:5px;height:5px;background:var(--yellow);border-radius:50%}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.sec-ttl{font-size:15px;font-weight:700;color:var(--em-950);letter-spacing:-.2px}
+.sec-sub{font-size:12px;color:var(--n-400);margin-top:2px}
+.ml-badge{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:var(--em-800);color:var(--white);padding:4px 10px;border-radius:5px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.ml-badge::before{content:'';display:inline-block;width:6px;height:6px;background:var(--yellow);border-radius:50%}
+
+/* FORECAST */
+.fc-grid{display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:start}
+.fc-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--n-100)}
+.fc-row:last-child{border-bottom:none}
+.fc-day{font-size:13px;font-weight:600;color:var(--n-700)}
+.fc-date{font-size:11px;color:var(--n-400);margin-top:1px}
+.fc-r{display:flex;align-items:center;gap:10px}
+.fc-val{font-size:17px;font-weight:700;color:var(--em-950);letter-spacing:-.3px}
+.fu{font-size:11px;font-weight:500;color:var(--n-400)}
+.fc-chip{font-size:10px;font-weight:600;padding:3px 9px;border-radius:10px}
+.ca{background:var(--em-100);color:var(--em-800)}
+.cp{background:#fefce8;color:#854d0e;border:1px dashed #fbbf24}
+.fc-insight{margin-top:18px;display:flex;align-items:flex-start;gap:10px;background:var(--em-50);border:1px solid var(--em-100);border-radius:var(--rs);padding:11px 14px}
+.fc-insight p{font-size:12px;color:var(--em-800);font-weight:500;line-height:1.55}
+.ch-wrap{position:relative;height:185px}
+
+/* CHART TABS */
+.ch-tabs{display:flex;gap:3px;background:var(--n-100);border-radius:7px;padding:3px}
+.ch-tab{padding:5px 14px;font-size:12px;font-weight:500;border-radius:5px;cursor:pointer;color:var(--n-500);transition:background .18s,color .18s;border:none;background:transparent;font-family:inherit}
+.ch-tab.active{background:var(--white);color:var(--em-700);font-weight:600;box-shadow:var(--sh-sm)}
+.ch-tab:hover:not(.active){color:var(--em-600)}
+.ch-insight{margin-top:14px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--n-500)}
+.cidot{width:6px;height:6px;background:var(--em-500);border-radius:50%;flex-shrink:0}
+.legend{display:flex;gap:18px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--n-500)}
+.lb{width:14px;height:10px;border-radius:2px}
+.ll{width:18px;height:0;border-top:2px dashed}
+
+/* SMART ALERT */
+.alert-card{background:var(--white);border:1px solid #fde68a;border-left:4px solid var(--amber);border-radius:var(--r);box-shadow:var(--sh-sm);padding:18px}
+.ah{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.ai-box{width:34px;height:34px;border-radius:8px;background:#fffbeb;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.at{font-size:13px;font-weight:700;color:#92400e}
+.abadge{display:inline-block;font-size:9px;font-weight:700;background:var(--amber);color:var(--white);padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+.ab{font-size:12px;color:var(--n-700);line-height:1.6;margin-bottom:14px}
+.ahl{font-weight:600;color:#92400e}
+.btn-alert{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--amber);border:1.5px solid var(--amber);background:transparent;border-radius:var(--rs);padding:7px 14px;cursor:pointer;transition:background .15s,color .15s;font-family:inherit}
+.btn-alert:hover{background:var(--amber);color:var(--white)}
+
+/* COST INSIGHTS */
+.cost-amt{font-size:28px;font-weight:700;color:var(--em-800);letter-spacing:-.8px;margin-top:12px}
+.cost-amt .cur{font-size:16px}
+.cost-pred{font-size:12px;color:var(--n-500);margin-top:3px}
+.cost-pred strong{color:var(--n-700)}
+.cost-track{height:8px;background:var(--n-100);border-radius:8px;margin:14px 0 8px;overflow:hidden}
+.cost-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--em-600),var(--em-400));border-radius:8px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.cost-row{display:flex;justify-content:space-between;font-size:12px}
+.cost-row span:first-child{color:var(--n-500)}
+.cost-row span:last-child{font-weight:600;color:var(--em-700)}
+.cost-note{font-size:11px;color:var(--n-400);margin-top:10px;line-height:1.5}
+
+/* MONTH COMPARISON */
+.mc-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;margin:14px 0;align-items:center}
+.mc-col{text-align:center}
+.mc-col-lbl{font-size:10px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.mc-bars{display:flex;align-items:flex-end;height:52px;margin-bottom:6px}
+.mc-bar{width:100%;border-radius:4px 4px 0 0}
+.mc-val{font-size:20px;font-weight:700;color:var(--em-950);letter-spacing:-.5px}
+.mc-unit-sm{font-size:11px;color:var(--n-400)}
+.mc-div{width:1px;height:60px;background:var(--n-200)}
+.delta{display:flex;align-items:center;justify-content:center;gap:5px;background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;color:#92400e}
+
+/* METER TABLE */
+.filter-chips{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.fc2{padding:5px 13px;font-size:12px;font-weight:500;border:1px solid var(--n-200);border-radius:20px;background:var(--white);color:var(--n-500);cursor:pointer;transition:all .15s;font-family:inherit}
+.fc2:hover{border-color:var(--em-400);color:var(--em-700)}
+.fc2.active{background:var(--em-600);border-color:var(--em-600);color:var(--white);font-weight:600}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:11px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.5px;padding:0 12px 10px;border-bottom:1px solid var(--n-200)}
+tbody tr{border-bottom:1px solid var(--n-100);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--n-50)}
+tbody tr.rh{background:#fff7ed}
+tbody tr.rh:hover{background:#ffedd5}
+tbody td{padding:11px 12px;font-size:13px;color:var(--n-700)}
+tbody td:first-child{color:var(--n-500);font-size:12px;font-weight:500}
+tbody td:nth-child(3){font-weight:700;color:var(--em-950)}
+.sb{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600}
+.sb::before{content:'';width:5px;height:5px;border-radius:50%}
+.sn{background:var(--em-50);color:var(--em-700)}.sn::before{background:var(--em-500)}
+.sh2{background:#fef2f2;color:var(--red)}.sh2::before{background:var(--red)}
+.mfooter{font-size:11px;color:var(--n-400);margin-top:14px;padding-top:14px;border-top:1px solid var(--n-100)}
+
+/* FOOTER */
+footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);border-top:1px solid var(--n-200);background:var(--white)}
+
+/* MOBILE MENU */
+.mob-menu{display:none;position:fixed;top:60px;left:0;right:0;z-index:99;background:var(--white);border-bottom:1px solid var(--n-200);box-shadow:var(--sh-md);padding:12px 16px;flex-direction:column;gap:4px}
+.mob-menu.open{display:flex}
+.mob-lnk{padding:10px 12px;font-size:14px;font-weight:500;color:var(--n-700);border-radius:var(--rs);cursor:pointer;transition:background .15s,color .15s}
+.mob-lnk:hover,.mob-lnk.active{background:var(--em-50);color:var(--em-700);font-weight:600}
+
+/* RESPONSIVE */
+@media(max-width:1200px){.metrics-grid{grid-template-columns:repeat(2,1fr)}.fc-grid{grid-template-columns:1fr}}
+@media(max-width:1024px){.content-grid{grid-template-columns:1fr}.right-panel{position:static;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}}
+@media(max-width:768px){.content-grid{padding:18px 16px 40px;gap:18px}.metrics-grid{grid-template-columns:1fr 1fr;gap:12px}.right-panel{grid-template-columns:1fr}.nav-center{display:none}.hamburger{display:flex}.mc-num{font-size:26px}.welcome-strip h1{font-size:18px}}
+@media(max-width:480px){.metrics-grid{grid-template-columns:1fr}.navbar{padding:0 16px}}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-left">
+    <div class="logo-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M13 2L4.5 13.5H11.5L10 22L20.5 9.5H13.5L13 2Z" fill="#34d399" stroke="#34d399" stroke-width="0.5" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="nav-brand">Energy<span>Watch</span></span>
+  </div>
+  <div class="nav-center">
+    <span class="nav-link active" onclick="setNav(this)">Dashboard</span>
+    <span class="nav-link" onclick="setNav(this)">Consumption</span>
+    <span class="nav-link" onclick="setNav(this)">Forecast</span>
+    <span class="nav-link" onclick="setNav(this)">Alerts</span>
+  </div>
+  <div class="nav-right">
+    <div class="bell">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span class="bell-dot"></span>
+    </div>
+    <div class="avatar">HH</div>
+    <div class="hamburger" id="hbtn" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mob-menu" id="mmenu">
+  <div class="mob-lnk active">Dashboard</div>
+  <div class="mob-lnk">Consumption</div>
+  <div class="mob-lnk">Forecast</div>
+  <div class="mob-lnk">Alerts</div>
+</div>
+
+<!-- PAGE -->
+<div class="page-wrapper">
+<div class="content-grid">
+<div class="main-col">
+
+  <!-- WELCOME -->
+  <div class="welcome-strip">
+    <div>
+      <h1 id="gtxt">Good afternoon &#128075;</h1>
+      <p id="dtxt">Loading...</p>
+    </div>
+    <div class="status-chip">
+      <span class="sdot"></span>
+      System online &nbsp;&middot;&nbsp; Last updated 2 min ago
+    </div>
+  </div>
+
+  <!-- METRIC CARDS -->
+  <div class="metrics-grid">
+    <div class="mc">
+      <div class="mc-top">
+        <div class="mc-icon ic-g">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L4.5 13.5H11.5L10 22L20.5 9.5H13.5L13 2Z"/>
+          </svg>
+        </div>
+        <span class="mc-badge badge-up">&#9650; +4.2%</span>
+      </div>
+      <div><span class="mc-num" id="m1">0.0</span><span class="mc-unit">kWh</span></div>
+      <div class="mc-lbl">Today&#8217;s Usage</div>
+      <div class="mc-sub">vs yesterday: 33.9 kWh</div>
+    </div>
+
+    <div class="mc">
+      <div class="mc-top">
+        <div class="mc-icon ic-b">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <span class="mc-badge badge-up">&#9650; +13.5%</span>
+      </div>
+      <div><span class="mc-num" id="m2">0</span><span class="mc-unit">kWh</span></div>
+      <div class="mc-lbl">This Month</div>
+      <div class="mc-sub">Sep 1 &ndash; Sep 8, 2026</div>
+    </div>
+
+    <div class="mc">
+      <div class="mc-top">
+        <div class="mc-icon ic-y">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </div>
+        <span class="mc-badge badge-n">ML Forecast</span>
+      </div>
+      <div><span class="mc-num" id="m3">0.0</span><span class="mc-unit">kWh</span></div>
+      <div class="mc-lbl">Tomorrow&#8217;s Forecast</div>
+      <div class="mc-tag"><span class="dy"></span>AI Prediction</div>
+    </div>
+
+    <div class="mc">
+      <div class="mc-top">
+        <div class="mc-icon ic-a">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <span class="mc-badge badge-up">&#9650; Forecast</span>
+      </div>
+      <div><span class="mc-num" id="m4">&#8377;0</span></div>
+      <div class="mc-lbl">Estimated Bill</div>
+      <div class="mc-sub">Predicted month-end: &#8377;3,480</div>
+    </div>
+  </div>
+
+  <!-- AI FORECAST (HERO) -->
+  <div class="card" style="padding:24px">
+    <div class="sec-hdr">
+      <div>
+        <div class="sec-ttl">&#129302; AI Consumption Forecast</div>
+        <div class="sec-sub">Machine learning prediction based on your usage history</div>
+      </div>
+      <span class="ml-badge">ML Forecast</span>
+    </div>
+    <div class="fc-grid">
+      <div>
+        <div class="fc-row">
+          <div><div class="fc-day">Today</div><div class="fc-date">Tuesday, Sep 8</div></div>
+          <div class="fc-r"><div class="fc-val">35.4 <span class="fu">kWh</span></div><span class="fc-chip ca">Actual</span></div>
+        </div>
+        <div class="fc-row">
+          <div><div class="fc-day">Tomorrow</div><div class="fc-date">Wednesday, Sep 9</div></div>
+          <div class="fc-r"><div class="fc-val">37.2 <span class="fu">kWh</span></div><span class="fc-chip cp">Predicted</span></div>
+        </div>
+        <div class="fc-row">
+          <div><div class="fc-day">Sep 10</div><div class="fc-date">Thursday, Sep 10</div></div>
+          <div class="fc-r"><div class="fc-val">38.1 <span class="fu">kWh</span></div><span class="fc-chip cp">Predicted</span></div>
+        </div>
+        <div class="fc-insight">
+          <span style="font-size:15px;flex-shrink:0">&#128200;</span>
+          <p>Expected increase of <strong>5.1%</strong> over the next 2 days, based on your weekly usage pattern.</p>
+        </div>
+      </div>
+      <div>
+        <div class="ch-wrap"><canvas id="fcChart"></canvas></div>
+        <div class="legend" style="margin-top:10px">
+          <div class="li"><div class="lb" style="background:#10b981"></div><span>Actual</span></div>
+          <div class="li"><div class="ll" style="border-color:#facc15"></div><span>Predicted</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSUMPTION TREND CHART -->
+  <div class="card" style="padding:24px">
+    <div class="sec-hdr">
+      <div>
+        <div class="sec-ttl">Energy Consumption</div>
+        <div class="sec-sub">Historical usage &middot; kWh per day</div>
+      </div>
+      <div class="ch-tabs">
+        <button class="ch-tab active" onclick="switchTab('7d',this)">7 Days</button>
+        <button class="ch-tab" onclick="switchTab('30d',this)">30 Days</button>
+        <button class="ch-tab" onclick="switchTab('3m',this)">3 Months</button>
+      </div>
+    </div>
+    <div style="position:relative;height:240px"><canvas id="conChart"></canvas></div>
+    <div class="ch-insight">
+      <span class="cidot"></span>
+      <span id="ci">Your average daily consumption increased by <strong>8%</strong> this week vs the previous week.</span>
+    </div>
+    <div class="legend">
+      <div class="li"><div class="lb" style="background:rgba(16,185,129,.8)"></div><span>Actual</span></div>
+      <div class="li"><div class="ll" style="border-color:#facc15"></div><span>Forecast overlay</span></div>
+    </div>
+  </div>
+
+  <!-- METER READINGS -->
+  <div class="card" style="padding:24px">
+    <div class="sec-hdr">
+      <div>
+        <div class="sec-ttl">&#9889; Recent Meter Readings</div>
+        <div class="sec-sub">Hourly log &middot; Meter ID: EW-2847-HH</div>
+      </div>
+    </div>
+    <div class="filter-chips">
+      <button class="fc2 active" onclick="setFilter('today',this)">Today</button>
+      <button class="fc2" onclick="setFilter('yesterday',this)">Yesterday</button>
+      <button class="fc2" onclick="setFilter('week',this)">This Week</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Meter Reading</th>
+            <th>Usage</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rtb"></tbody>
+      </table>
+    </div>
+    <div class="mfooter">
+      Sample tariff: <strong>&#8377;7.73 / kWh</strong> &nbsp;&middot;&nbsp; Readings refresh every 2 hours &nbsp;&middot;&nbsp; EnergyWatch v2.4
+    </div>
+  </div>
+
+</div><!-- /main-col -->
+
+<!-- RIGHT PANEL -->
+<aside class="right-panel">
+
+  <!-- SMART ALERT -->
+  <div class="alert-card">
+    <div class="ah">
+      <div class="ai-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div>
+        <div class="at">Unusual consumption detected</div>
+        <span class="abadge">New Alert</span>
+      </div>
+    </div>
+    <p class="ab">
+      Your electricity usage at <span class="ahl">8:00 PM on Monday</span> reached
+      <span class="ahl">8.9 kWh</span> &mdash;
+      <span class="ahl">63% above</span> your typical evening pattern.
+      This may indicate a high-draw appliance left running.
+    </p>
+    <button class="btn-alert">
+      View details
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- COST INSIGHTS -->
+  <div class="card">
+    <div class="card-ttl">Cost Insights</div>
+    <div class="cost-amt"><span class="cur">&#8377;</span>3,250</div>
+    <div class="cost-pred">Predicted month-end: <strong>&#8377;3,480</strong></div>
+    <div class="cost-track"><div class="cost-bar" id="cbar"></div></div>
+    <div class="cost-row">
+      <span>74% of predicted</span>
+      <span>&#8377;230 remaining</span>
+    </div>
+    <div class="cost-note">Based on usage Sep 1&ndash;8, 2026. Sample tariff: &#8377;7.73/kWh.</div>
+  </div>
+
+  <!-- MONTH COMPARISON -->
+  <div class="card">
+    <div class="card-ttl">Monthly Comparison</div>
+    <div class="mc-grid">
+      <div class="mc-col">
+        <div class="mc-col-lbl">This Month</div>
+        <div class="mc-bars">
+          <div style="flex:1;display:flex;align-items:flex-end">
+            <div class="mc-bar" style="height:100%;background:var(--em-500);opacity:.85"></div>
+          </div>
+        </div>
+        <div class="mc-val">420</div>
+        <div class="mc-unit-sm">kWh</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center">
+        <div class="mc-div"></div>
+      </div>
+      <div class="mc-col">
+        <div class="mc-col-lbl">Last Month</div>
+        <div class="mc-bars">
+          <div style="flex:1;display:flex;align-items:flex-end">
+            <div class="mc-bar" style="height:88%;background:var(--n-200)"></div>
+          </div>
+        </div>
+        <div class="mc-val" style="color:var(--n-500)">370</div>
+        <div class="mc-unit-sm">kWh</div>
+      </div>
+    </div>
+    <div class="delta">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round">
+        <path d="M12 19V5M5 12l7-7 7 7"/>
+      </svg>
+      +50 kWh &nbsp;&middot;&nbsp; +13.5% vs last month
+    </div>
+  </div>
+
+</aside>
+</div><!-- /content-grid -->
+
+<footer>
+  EnergyWatch &copy; 2026 &nbsp;&middot;&nbsp; Smart Utility Consumption Forecasting &nbsp;&middot;&nbsp;
+  Sample prototype &mdash; all data is illustrative only
+</footer>
+</div><!-- /page-wrapper -->
+
+<script>
+/* GREETING & DATE */
+(function(){
+  var h=new Date().getHours(),
+      g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('gtxt').textContent=g+' \u{1F44B}';
+  var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+      months=['January','February','March','April','May','June','July','August','September','October','November','December'],
+      n=new Date();
+  document.getElementById('dtxt').textContent=
+    "Here\u2019s your energy overview for "+days[n.getDay()]+", "+n.getDate()+" "+months[n.getMonth()]+" "+n.getFullYear()+".";
+})();
+
+/* NAV */
+function setNav(el){document.querySelectorAll('.nav-link').forEach(function(l){l.classList.remove('active')});el.classList.add('active')}
+function toggleMenu(){document.getElementById('mmenu').classList.toggle('open')}
+document.addEventListener('click',function(e){
+  var m=document.getElementById('mmenu'),b=document.getElementById('hbtn');
+  if(!m.contains(e.target)&&!b.contains(e.target))m.classList.remove('open');
+});
+
+/* COUNT-UP */
+function countUp(el,target,dec,pre,dur){
+  var s=performance.now();
+  function step(now){
+    var p=Math.min((now-s)/dur,1),ease=1-Math.pow(1-p,3),v=target*ease;
+    el.textContent=pre+(dec===0?Math.round(v).toLocaleString('en-IN'):v.toFixed(dec));
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* MOCK DATA */
+var MOCK={
+  '7d':{
+    labels:['Sep 2','Sep 3','Sep 4','Sep 5','Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
+    actual:[32.1,29.8,34.5,31.2,33.9,33.9,35.4,null,null],
+    forecast:[null,null,null,null,null,null,35.4,37.2,38.1],
+    insight:'Your average daily consumption increased by <strong>8%</strong> this week vs the previous week.'
+  },
+  '30d':{
+    labels:(function(){var a=[];for(var i=0;i<30;i++){var d=new Date(2026,7,10+i);a.push(d.getDate()+' '+(d.getMonth()===7?'Aug':'Sep'));}return a;})(),
+    actual:[28.2,30.1,29.5,31.8,27.3,30.9,32.4,28.8,31.2,29.9,33.5,30.2,31.7,29.4,32.1,30.8,33.2,31.5,30.3,32.8,33.1,31.9,32.4,33.8,31.2,33.9,33.9,34.2,35.1,35.4],
+    forecast:[],
+    insight:'Monthly average: <strong>31.8 kWh/day</strong>. Peak usage recorded on Sep 8.'
+  },
+  '3m':{
+    labels:['Jul 1','Jul 8','Jul 15','Jul 22','Jul 29','Aug 5','Aug 12','Aug 19','Aug 26','Sep 2','Sep 8'],
+    actual:[26.1,27.4,28.2,27.9,28.8,29.5,30.2,31.8,32.4,33.1,35.4],
+    forecast:[],
+    insight:'Consumption grew <strong>35.6%</strong> over 3 months, reflecting seasonal increase.'
+  },
+  readings:{
+    today:[
+      {t:'06:00 AM',r:'18,214.2',u:'2.1',s:'Normal'},
+      {t:'08:00 AM',r:'18,216.3',u:'2.1',s:'Normal'},
+      {t:'10:00 AM',r:'18,219.5',u:'3.2',s:'Normal'},
+      {t:'12:00 PM',r:'18,223.6',u:'4.1',s:'Normal'},
+      {t:'02:00 PM',r:'18,227.4',u:'3.8',s:'Normal'},
+      {t:'04:00 PM',r:'18,230.9',u:'3.5',s:'Normal'},
+      {t:'06:00 PM',r:'18,235.1',u:'4.2',s:'Normal'},
+      {t:'08:00 PM',r:'18,244.0',u:'8.9',s:'High'},
+      {t:'10:00 PM',r:'18,247.1',u:'3.1',s:'Normal'}
+    ],
+    yesterday:[
+      {t:'06:00 AM',r:'18,181.5',u:'2.0',s:'Normal'},
+      {t:'08:00 AM',r:'18,183.6',u:'2.1',s:'Normal'},
+      {t:'10:00 AM',r:'18,186.4',u:'2.8',s:'Normal'},
+      {t:'12:00 PM',r:'18,190.1',u:'3.7',s:'Normal'},
+      {t:'02:00 PM',r:'18,193.7',u:'3.6',s:'Normal'},
+      {t:'04:00 PM',r:'18,197.0',u:'3.3',s:'Normal'},
+      {t:'06:00 PM',r:'18,201.1',u:'4.1',s:'Normal'},
+      {t:'08:00 PM',r:'18,205.7',u:'4.6',s:'Normal'},
+      {t:'10:00 PM',r:'18,208.5',u:'2.8',s:'Normal'}
+    ],
+    week:[
+      {t:'Sep 2 (Total)',r:'18,089.2',u:'32.1',s:'Normal'},
+      {t:'Sep 3 (Total)',r:'18,119.0',u:'29.8',s:'Normal'},
+      {t:'Sep 4 (Total)',r:'18,153.5',u:'34.5',s:'Normal'},
+      {t:'Sep 5 (Total)',r:'18,184.7',u:'31.2',s:'Normal'},
+      {t:'Sep 6 (Total)',r:'18,218.6',u:'33.9',s:'Normal'},
+      {t:'Sep 7 (Total)',r:'18,252.5',u:'33.9',s:'Normal'},
+      {t:'Sep 8 (So far)',r:'18,247.1',u:'35.4',s:'Normal'}
+    ]
+  }
+};
+
+/* TABLE */
+function buildTable(f){
+  document.getElementById('rtb').innerHTML=MOCK.readings[f].map(function(r){
+    return '<tr class="'+(r.s==='High'?'rh':'')+'">'
+      +'<td>'+r.t+'</td>'
+      +'<td>'+r.r+' kWh</td>'
+      +'<td>'+r.u+' kWh</td>'
+      +'<td><span class="sb '+(r.s==='High'?'sh2':'sn')+'">'+r.s+'</span></td>'
+      +'</tr>';
+  }).join('');
+}
+function setFilter(f,el){
+  document.querySelectorAll('.fc2').forEach(function(c){c.classList.remove('active')});
+  el.classList.add('active');
+  buildTable(f);
+}
+
+/* CONSUMPTION CHART */
+var cChart=null;
+function buildCon(range){
+  var ctx=document.getElementById('conChart').getContext('2d'),d=MOCK[range];
+  var ds=[{type:'bar',label:'Actual (kWh)',data:d.actual,backgroundColor:'rgba(16,185,129,.78)',borderRadius:5,borderSkipped:false,order:2}];
+  if(range==='7d')ds.push({type:'line',label:'Forecast (kWh)',data:d.forecast,borderColor:'#facc15',backgroundColor:'transparent',borderWidth:2.2,borderDash:[6,4],pointBackgroundColor:'#facc15',pointRadius:[0,0,0,0,0,0,5,5,5],tension:.35,order:1});
+  if(cChart)cChart.destroy();
+  cChart=new Chart(ctx,{
+    data:{labels:d.labels,datasets:ds},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:'#fff',titleColor:'#171717',bodyColor:'#737373',borderColor:'#e5e5e5',borderWidth:1,padding:12,cornerRadius:8,
+          callbacks:{label:function(c){return c.raw!=null?' '+c.dataset.label+': '+c.raw+' kWh':null}}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'Inter',size:11},color:'#a3a3a3',maxRotation:40}},
+        y:{grid:{color:'#f5f5f5'},beginAtZero:false,min:20,ticks:{font:{family:'Inter',size:11},color:'#a3a3a3',callback:function(v){return v+' kWh'}}}
+      }
+    }
+  });
+  document.getElementById('ci').innerHTML=d.insight;
+}
+function switchTab(range,el){
+  document.querySelectorAll('.ch-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  buildCon(range);
+}
+
+/* FORECAST CHART */
+function buildFc(){
+  var ctx=document.getElementById('fcChart').getContext('2d');
+  new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:['Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
+      datasets:[
+        {label:'Actual (kWh)',data:[33.9,33.9,35.4,null,null],borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',fill:true,borderWidth:2.5,pointBackgroundColor:'#10b981',pointRadius:[4,4,7,0,0],tension:.35,order:1},
+        {label:'Predicted (kWh)',data:[null,null,35.4,37.2,38.1],borderColor:'#facc15',backgroundColor:'rgba(250,204,21,.07)',fill:true,borderWidth:2.5,borderDash:[6,4],pointBackgroundColor:'#facc15',pointRadius:[0,0,6,6,6],tension:.35,order:2}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:'#fff',titleColor:'#171717',bodyColor:'#737373',borderColor:'#e5e5e5',borderWidth:1,padding:10,cornerRadius:8,
+          callbacks:{label:function(c){return c.raw!=null?' '+c.dataset.label+': '+c.raw+' kWh':null}}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#a3a3a3'}},
+        y:{grid:{color:'#f5f5f5'},min:30,max:42,ticks:{font:{family:'Inter',size:10},color:'#a3a3a3',callback:function(v){return v+' kWh'}}}
+      }
+    }
+  });
+}
+
+/* INIT */
+window.addEventListener('DOMContentLoaded',function(){
+  countUp(document.getElementById('m1'),35.4,1,'',700);
+  countUp(document.getElementById('m2'),420,0,'',850);
+  countUp(document.getElementById('m3'),37.2,1,'',700);
+  countUp(document.getElementById('m4'),3250,0,'\u20B9',900);
+  setTimeout(function(){document.getElementById('cbar').style.width='74%'},400);
+  buildTable('today');
+  buildCon('7d');
+  buildFc();
+});
+</script>
+</body>
+</html>
