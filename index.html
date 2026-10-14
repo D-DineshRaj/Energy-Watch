@@ -300,8 +300,8 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
   <!-- WELCOME -->
   <div class="welcome-strip">
     <div>
-      <h1 id="gtxt">Good afternoon &#128075;</h1>
-      <p id="dtxt">Loading live energy overview...</p>
+      <h1 id="gtxt">Welcome &#128075;</h1>
+      <p id="dtxt">Loading date and time...</p>
     </div>
     <div class="status-chip" id="statusChip" onclick="checkBackendHealth()" title="Click to test live backend connection">
       <span class="sdot" id="statusDot"></span>
@@ -590,17 +590,44 @@ function showToast(msg, dur){
   setTimeout(function(){ t.classList.remove('show'); }, dur || 3000);
 }
 
-/* ── GREETING & DATE ──────────────────────────────────────────────────────── */
-(function(){
-  var h = new Date().getHours(),
-      g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('gtxt').textContent = g + ' \u{1F44B}';
-  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
-      months = ['January','February','March','April','May','June','July','August','September','October','November','December'],
-      n = new Date();
-  document.getElementById('dtxt').textContent =
-    "Energy overview for " + days[n.getDay()] + ", " + n.getDate() + " " + months[n.getMonth()] + " " + n.getFullYear() + " (Meter: EW-2847-HH)";
-})();
+/* ── GREETING & LIVE CLOCK ────────────────────────────────────────────────── */
+var _clockInterval = null;
+
+function startLiveClock(){
+  // Clean up any existing interval to prevent duplicates
+  if(_clockInterval){ clearInterval(_clockInterval); _clockInterval = null; }
+
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function updateClock(){
+    var now = new Date();
+    var h = now.getHours();
+
+    // Time-of-day greeting
+    var greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('gtxt').textContent = greeting + ' \u{1F44B}';
+
+    // Full date: "Wednesday, 14 October 2026"
+    var dateStr = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+
+    // 12-hour clock with seconds: "05:42:10 PM"
+    var hours12 = h % 12 || 12;
+    var mins = now.getMinutes().toString().padStart(2, '0');
+    var secs = now.getSeconds().toString().padStart(2, '0');
+    var ampm = h < 12 ? 'AM' : 'PM';
+    var timeStr = hours12.toString().padStart(2, '0') + ':' + mins + ':' + secs + ' ' + ampm;
+
+    document.getElementById('dtxt').textContent = dateStr + '  \u00B7  ' + timeStr;
+  }
+
+  // Run immediately, then tick every second
+  updateClock();
+  _clockInterval = setInterval(updateClock, 1000);
+}
+
+// Start on page load
+startLiveClock();
 
 /* ── NAV & MOBILE MENU ────────────────────────────────────────────────────── */
 function setNav(el){
