@@ -1,0 +1,14 @@
+# ── Phase 1 Dependencies (Python 3.14.3 compatible) ────────────────────────
+fastapi==0.135.2
+uvicorn[standard]==0.42.0
+sqlalchemy==2.1.4
+httpx==0.28.1
+
+# ── Phase 5 — ML (to be added during Phase 5) ──────────────────────────────
+# scikit-learn>=1.5.2
+# numpy>=2.0.2
+# pandas>=2.2.3
+
+# ── Phase 6 — Testing (to be added during Phase 6) ─────────────────────────
+# pytest>=8.3.3
+# pytest-asyncio>=0.24.0

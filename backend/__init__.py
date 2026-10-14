@@ -1,0 +1,1 @@
+"""EnergyWatch backend package."""
