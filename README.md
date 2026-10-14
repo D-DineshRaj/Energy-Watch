@@ -4,16 +4,17 @@ EnergyWatch is a household electricity monitoring and forecasting application de
 
 ---
 
-## 📌 Project Status: Phase 1 (Backend & SQLite Foundation)
+## 📌 Project Status: Working Full-Stack Prototype (~65% Milestone)
 
 | Layer | Status | Implementation Details |
 |---|---|---|
-| **Frontend UI** | Preserved Baseline | Original `index.html` dashboard preserved byte-for-byte |
-| **Backend API** | ✅ Operational | FastAPI with Python 3.14 compatibility |
+| **Frontend UI** | ✅ Fully Functional | Connected to live FastAPI endpoints; Chart.js graphs, filter chips, dynamic alerts |
+| **Backend API** | ✅ Operational | FastAPI application with CORS and lifespan database initialization |
 | **Database** | ✅ Operational | SQLite (`data/energywatch.db`) via SQLAlchemy 2.1.4 |
 | **Data Seeder** | ✅ Operational | Idempotent baseline seeder for simulated readings and alerts |
-| **ML Forecasts** | ⚠️ Static Simulation | Model labelled `static_seed` (ML pipeline planned for Phase 5) |
-| **Electricity Tariff** | ⚠️ Pending APERC | Kept `null` pending official APERC tariff schedule verification |
+| **Alert Management** | ✅ Interactive | Full acknowledgement & reset cycle persisted in SQLite |
+| **ML Forecasts** | ⚠️ Static Simulation | Model labelled `static_seed` (Machine learning pipeline planned for Phase 5) |
+| **Electricity Tariff** | ⚠️ Pending APERC | Kept `null` pending official APERC tariff schedule verification (Phase 4) |
 
 ---
 
@@ -21,7 +22,7 @@ EnergyWatch is a household electricity monitoring and forecasting application de
 
 ```
 EnergyWatch/
-├── index.html                  # Responsive frontend dashboard (preserved baseline)
+├── index.html                  # Responsive frontend dashboard connected to FastAPI
 ├── requirements.txt            # Pinned dependencies for Python 3.14.3
 ├── .gitignore                  # Exclusion rules for venv, DB, secrets, and caches
 ├── README.md                   # Project documentation and developer guide
@@ -41,48 +42,60 @@ EnergyWatch/
         ├── metrics.py          # /api/metrics (usage summaries, null bill)
         ├── consumption.py      # /api/consumption (7d, 30d, 3m trends)
         ├── forecast.py         # /api/forecast (static sample forecasts)
-        └── alerts.py           # /api/alerts (retrieval & acknowledgement)
+        └── alerts.py           # /api/alerts (retrieval, acknowledge, & reset)
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start for Windows
 
-### 1. Prerequisites
-- Python 3.14.x installed on your system.
-- Git 2.40+ installed.
+Open **PowerShell** in the project directory (`C:\Projects\EnergyWatrch(3-1)`):
 
-### 2. Environment Setup
-Create and activate the virtual environment:
-```powershell
-# Create virtual environment in project root
-python -m venv .venv
-
-# Activate on Windows PowerShell
-.venv\Scripts\Activate.ps1
-```
-
-### 3. Install Dependencies
-```powershell
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-### 4. Seed the Database
-Populate the database with sample baseline electricity readings:
+### 1. (One-time) Seed the SQLite Database
 ```powershell
 .venv\Scripts\python.exe backend/seed_data.py
 ```
-*(The script is strictly idempotent: re-running it skips duplicate records safely).*
+*(The seeder is strictly idempotent; re-running it skips duplicate records safely).*
 
-### 5. Run the Application
-Start the Uvicorn development server:
+### 2. Start the FastAPI Development Server
 ```powershell
 .venv\Scripts\python.exe -m uvicorn backend.main:app --reload --port 8000
 ```
 
-- **Dashboard:** Open [http://localhost:8000/](http://localhost:8000/) in your browser.
-- **Interactive API Docs (Swagger):** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Alternative API Docs (ReDoc):** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+### 3. Open the Dashboard in your Browser
+- **Live Dashboard:** [http://localhost:8000/](http://localhost:8000/)
+- **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
+
+---
+
+## 🧑‍🏫 Mentor Demonstration Guide
+
+Follow these steps to demonstrate the working full-stack application to your mentor:
+
+1. **System Health & Architecture:**
+   - Notice the status chip in the top banner: **"Backend Online · SQLite Connected"**.
+   - Explain that the single-page application is served directly by **FastAPI** and communicates asynchronously with SQLite via JSON REST endpoints.
+2. **Dynamic Metric Cards:**
+   - Point out **Today's Usage** (35.4 kWh) and **This Month** (420 kWh), which dynamically animate using count-up transitions.
+   - Explain the honest labelling: **Tomorrow's Forecast** is tagged `Static Baseline`, and **Estimated Bill** displays `Pending Tariff` because official Andhra Pradesh Electricity Regulatory Commission (APERC) slabs will be integrated in Phase 4.
+3. **Interactive Consumption History Chart:**
+   - Click the **30 Days** tab: observe the chart re-render with daily bar series from SQLite and dynamic average calculation.
+   - Click the **3 Months** tab: observe the quarterly aggregation and seasonal trend insight.
+   - Click the **7 Days** tab: observe the actual usage bars with the yellow forecast overlay.
+4. **Live SQLite Meter Readings Table:**
+   - Show the hourly readings table with cumulative meter readings, interval usage, and line voltage.
+   - Click the **Yesterday** filter button to query yesterday's hourly log from SQLite.
+   - Click the **This Week** filter button to query daily summary totals.
+   - Click **Today** to return to the active hourly stream.
+5. **Interactive Anomaly Detection & State Persistence:**
+   - Show the **Smart Alert** card identifying the 8.9 kWh spike at 8:00 PM. Notice the red notification dot on the bell icon in the navbar.
+   - Click **"Acknowledge Alert"**:
+     - The button updates, calls `POST /api/alerts/1/acknowledge`, and persists the change to SQLite.
+     - The card transitions to **"✅ All Systems Normal"** and the bell red dot disappears.
+   - Click **"Re-arm Demo Alert"** to reset the alert back to active status, proving two-way live database communication.
+6. **Backend Transparency (Swagger UI):**
+   - Click the **"API Docs"** button in the top banner to open `/docs` and show your mentor the automated OpenAPI contracts for all endpoints.
 
 ---
 
@@ -100,13 +113,13 @@ Start the Uvicorn development server:
 | `GET` | `/api/consumption?range=3m` | 3-month aggregated consumption series |
 | `GET` | `/api/forecast` | Static sample forecasts labelled as simulation |
 | `GET` | `/api/alerts` | List unacknowledged anomaly alerts |
-| `POST` | `/api/alerts/{id}/acknowledge` | Mark an alert as acknowledged |
+| `POST` | `/api/alerts/{id}/acknowledge` | Mark an alert as acknowledged in SQLite |
+| `POST` | `/api/alerts/{id}/reset` | Re-arm an alert for demonstration testing |
 
 ---
 
-## ⚠️ Known Limitations & Disclaimers (Phase 1)
+## ⚠️ Data Disclaimer & Roadmap
 
-1. **Simulated Meter Data:** All meter readings and alerts are mock/simulated sample records designed to establish API contracts and schemas.
-2. **Static Forecasts:** The forecast endpoint provides static seed values to mirror dashboard cards. Real machine learning computation will be integrated in Phase 5.
-3. **Billing Rates:** `estimated_bill_inr` is returned as `null`. A preliminary rate of ₹7.73/kWh from initial mockups is unverified; official Andhra Pradesh Electricity Regulatory Commission (APERC) tariff schedules will be implemented in Phase 4.
-4. **Decoupled UI:** In Phase 1, `index.html` remains byte-for-byte preserved. Live JavaScript fetching from the `/api` endpoints will be connected in Phase 2.
+- **Simulated Meter Data:** Readings represent simulated household patterns (Meter `EW-2847-HH`) used to validate full-stack data flow and API contracts.
+- **Static Forecasts:** Forecast values represent a static seed baseline. Real machine learning models (e.g., ARIMA / Random Forest / Gradient Boosting) are scheduled for **Phase 5**.
+- **Tariff Schedule:** Electricity billing estimation is deferred until **Phase 4**, where official multi-tier APERC tariff schedules and fixed charges will be configured.

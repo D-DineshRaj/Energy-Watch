@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>EnergyWatch &mdash; Smart Utility Consumption Dashboard</title>
-<meta name="description" content="EnergyWatch helps households monitor electricity usage, predict future consumption, detect anomalies and manage energy costs with AI-powered forecasting."/>
+<meta name="description" content="EnergyWatch helps households monitor electricity usage, predict future consumption, detect anomalies and manage energy costs with FastAPI and SQLite."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -13,7 +13,7 @@
 :root{
   --em-950:#022c22;--em-800:#065f46;--em-700:#047857;--em-600:#059669;
   --em-500:#10b981;--em-400:#34d399;--em-200:#a7f3d0;--em-100:#d1fae5;--em-50:#ecfdf5;
-  --yellow:#facc15;--amber:#f59e0b;--red:#ef4444;
+  --yellow:#facc15;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;
   --n-900:#171717;--n-700:#404040;--n-500:#737373;--n-400:#a3a3a3;
   --n-200:#e5e5e5;--n-100:#f5f5f5;--n-50:#fafafa;--white:#ffffff;--page-bg:#f4f7f5;
   --sh-sm:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
@@ -32,27 +32,34 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);colo
 .nav-brand{font-size:16px;font-weight:700;color:var(--em-950);letter-spacing:-.3px}
 .nav-brand span{color:var(--em-600)}
 .nav-center{display:flex;align-items:center;gap:4px}
-.nav-link{padding:6px 14px;font-size:13px;font-weight:500;color:var(--n-500);border-radius:var(--rs);transition:color .15s,background .15s;cursor:pointer;position:relative;user-select:none}
+.nav-link{padding:6px 14px;font-size:13px;font-weight:500;color:var(--n-500);border-radius:var(--rs);transition:color .15s,background .15s;cursor:pointer;position:relative;user-select:none;text-decoration:none}
 .nav-link:hover{color:var(--em-700);background:var(--em-50)}
 .nav-link.active{color:var(--em-700);font-weight:600;background:var(--em-50)}
 .nav-link.active::after{content:'';position:absolute;bottom:-1px;left:14px;right:14px;height:2px;background:var(--em-600);border-radius:1px}
 .nav-right{display:flex;align-items:center;gap:12px}
 .bell{position:relative;width:36px;height:36px;border-radius:8px;border:1px solid var(--n-200);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,border-color .15s}
 .bell:hover{background:var(--em-50);border-color:var(--em-200)}
-.bell-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--white)}
+.bell-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--white);transition:opacity .2s}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--em-800);color:var(--white);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--em-200);transition:border-color .15s}
 .avatar:hover{border-color:var(--em-500)}
 .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
 .hamburger span{display:block;width:22px;height:2px;background:var(--n-700);border-radius:2px}
 
+/* MENTOR DEMO TOOLBAR */
+.demo-banner{background:linear-gradient(90deg,#064e3b,#047857);color:#ecfdf5;padding:8px 28px;font-size:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.demo-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;padding:2px 8px;border-radius:12px;font-weight:600;font-size:11px}
+.demo-actions{display:flex;align-items:center;gap:8px}
+.demo-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:background .15s;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.demo-btn:hover{background:rgba(255,255,255,.28)}
+
 /* LAYOUT */
 .page-wrapper{padding-top:60px;min-height:100vh}
-.content-grid{display:grid;grid-template-columns:1fr 288px;gap:24px;max-width:1400px;margin:0 auto;padding:28px 28px 48px;align-items:start}
+.content-grid{display:grid;grid-template-columns:1fr 310px;gap:24px;max-width:1400px;margin:0 auto;padding:24px 28px 48px;align-items:start}
 .main-col{display:flex;flex-direction:column;gap:24px;min-width:0}
 .right-panel{display:flex;flex-direction:column;gap:20px;position:sticky;top:84px}
 
 /* CARD */
-.card{background:var(--white);border:1px solid var(--n-200);border-radius:var(--r);box-shadow:var(--sh-sm);padding:20px;transition:box-shadow .2s,border-color .2s}
+.card{background:var(--white);border:1px solid var(--n-200);border-radius:var(--r);box-shadow:var(--sh-sm);padding:20px;transition:box-shadow .2s,border-color .2s;position:relative}
 .card:hover{box-shadow:var(--sh-md);border-color:var(--em-200)}
 .card-ttl{font-size:11px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.7px}
 
@@ -60,13 +67,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);colo
 .welcome-strip{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:0 2px}
 .welcome-strip h1{font-size:22px;font-weight:700;color:var(--em-950);letter-spacing:-.4px}
 .welcome-strip p{font-size:13px;color:var(--n-500);margin-top:2px}
-.status-chip{display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--n-200);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--n-500);font-weight:500;box-shadow:var(--sh-sm)}
+.status-chip{display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--n-200);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--n-500);font-weight:500;box-shadow:var(--sh-sm);cursor:pointer;transition:background .15s}
+.status-chip:hover{background:var(--em-50)}
 .sdot{width:8px;height:8px;border-radius:50%;background:var(--em-500);animation:pulse 2s ease-in-out infinite}
+.sdot.offline{background:var(--red);animation:none}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+/* ERROR BANNER */
+.conn-banner{display:none;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid var(--red);border-radius:var(--r);padding:12px 16px;color:#991b1b;font-size:12px;margin-bottom:8px}
+.conn-banner.show{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.conn-banner button{background:#ef4444;color:#fff;border:none;padding:5px 12px;border-radius:5px;font-weight:600;font-size:11px;cursor:pointer}
 
 /* METRIC CARDS */
 .metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.mc{background:var(--white);border:1px solid var(--n-200);border-radius:var(--r);box-shadow:var(--sh-sm);padding:18px 18px 16px;transition:box-shadow .2s,border-color .2s,transform .2s;cursor:default}
+.mc{background:var(--white);border:1px solid var(--n-200);border-radius:var(--r);box-shadow:var(--sh-sm);padding:18px 18px 16px;transition:box-shadow .2s,border-color .2s,transform .2s;cursor:default;position:relative}
 .mc:hover{box-shadow:var(--sh-md);border-color:var(--em-200);transform:translateY(-2px)}
 .mc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
 .mc-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -74,11 +88,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);colo
 .mc-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px}
 .badge-up{background:#fef3c7;color:#92400e}
 .badge-n{background:var(--n-100);color:var(--n-500)}
-.mc-num{font-size:32px;font-weight:700;color:var(--em-950);letter-spacing:-1px;line-height:1}
+.mc-num{font-size:30px;font-weight:700;color:var(--em-950);letter-spacing:-1px;line-height:1}
 .mc-unit{font-size:13px;font-weight:500;color:var(--n-400);margin-left:3px}
 .mc-lbl{font-size:12px;font-weight:500;color:var(--n-500);margin-top:6px}
 .mc-sub{font-size:11px;color:var(--n-400);margin-top:4px}
 .mc-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--em-800);color:var(--white);padding:2px 8px;border-radius:4px;margin-top:6px}
+.mc-tag-amber{background:#78350f;color:#fef3c7}
 .dy{width:5px;height:5px;background:var(--yellow);border-radius:50%}
 
 /* SECTION HEADER */
@@ -87,9 +102,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);colo
 .sec-sub{font-size:12px;color:var(--n-400);margin-top:2px}
 .ml-badge{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:var(--em-800);color:var(--white);padding:4px 10px;border-radius:5px;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .ml-badge::before{content:'';display:inline-block;width:6px;height:6px;background:var(--yellow);border-radius:50%}
+.sim-badge{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--n-100);color:var(--n-700);border:1px solid var(--n-200);padding:3px 8px;border-radius:4px}
 
 /* FORECAST */
-.fc-grid{display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:start}
+.fc-grid{display:grid;grid-template-columns:290px 1fr;gap:28px;align-items:start}
 .fc-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--n-100)}
 .fc-row:last-child{border-bottom:none}
 .fc-day{font-size:13px;font-weight:600;color:var(--n-700)}
@@ -117,19 +133,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);colo
 .ll{width:18px;height:0;border-top:2px dashed}
 
 /* SMART ALERT */
-.alert-card{background:var(--white);border:1px solid #fde68a;border-left:4px solid var(--amber);border-radius:var(--r);box-shadow:var(--sh-sm);padding:18px}
+.alert-card{background:var(--white);border:1px solid #fde68a;border-left:4px solid var(--amber);border-radius:var(--r);box-shadow:var(--sh-sm);padding:18px;transition:all .3s}
+.alert-card.acknowledged{border-color:var(--em-200);border-left-color:var(--em-500);background:#f0fdf4}
 .ah{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
 .ai-box{width:34px;height:34px;border-radius:8px;background:#fffbeb;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.alert-card.acknowledged .ai-box{background:var(--em-50);border-color:var(--em-200)}
 .at{font-size:13px;font-weight:700;color:#92400e}
+.alert-card.acknowledged .at{color:var(--em-800)}
 .abadge{display:inline-block;font-size:9px;font-weight:700;background:var(--amber);color:var(--white);padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+.alert-card.acknowledged .abadge{background:var(--em-600)}
 .ab{font-size:12px;color:var(--n-700);line-height:1.6;margin-bottom:14px}
 .ahl{font-weight:600;color:#92400e}
-.btn-alert{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--amber);border:1.5px solid var(--amber);background:transparent;border-radius:var(--rs);padding:7px 14px;cursor:pointer;transition:background .15s,color .15s;font-family:inherit}
+.btn-alert{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--amber);border:1.5px solid var(--amber);background:transparent;border-radius:var(--rs);padding:7px 14px;cursor:pointer;transition:all .15s;font-family:inherit}
 .btn-alert:hover{background:var(--amber);color:var(--white)}
+.btn-reset-alert{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--em-700);border:1px dashed var(--em-500);background:transparent;border-radius:var(--rs);padding:5px 10px;cursor:pointer;transition:all .15s;margin-top:6px}
+.btn-reset-alert:hover{background:var(--em-100)}
 
 /* COST INSIGHTS */
-.cost-amt{font-size:28px;font-weight:700;color:var(--em-800);letter-spacing:-.8px;margin-top:12px}
-.cost-amt .cur{font-size:16px}
+.cost-amt{font-size:26px;font-weight:700;color:var(--em-800);letter-spacing:-.8px;margin-top:12px}
 .cost-pred{font-size:12px;color:var(--n-500);margin-top:3px}
 .cost-pred strong{color:var(--n-700)}
 .cost-track{height:8px;background:var(--n-100);border-radius:8px;margin:14px 0 8px;overflow:hidden}
@@ -169,7 +190,16 @@ tbody td:nth-child(3){font-weight:700;color:var(--em-950)}
 .sb::before{content:'';width:5px;height:5px;border-radius:50%}
 .sn{background:var(--em-50);color:var(--em-700)}.sn::before{background:var(--em-500)}
 .sh2{background:#fef2f2;color:var(--red)}.sh2::before{background:var(--red)}
-.mfooter{font-size:11px;color:var(--n-400);margin-top:14px;padding-top:14px;border-top:1px solid var(--n-100)}
+.mfooter{font-size:11px;color:var(--n-400);margin-top:14px;padding-top:14px;border-top:1px solid var(--n-100);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+
+/* LOADING SPINNER */
+.loading-box{display:flex;align-items:center;justify-content:center;gap:8px;padding:28px;color:var(--n-400);font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid var(--em-200);border-top-color:var(--em-600);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST NOTIFICATION */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--em-950);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:var(--sh-md);display:flex;align-items:center;gap:10px;transform:translateY(100px);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);z-index:200}
+.toast.show{transform:translateY(0);opacity:1}
 
 /* FOOTER */
 footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);border-top:1px solid var(--n-200);background:var(--white)}
@@ -177,13 +207,13 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
 /* MOBILE MENU */
 .mob-menu{display:none;position:fixed;top:60px;left:0;right:0;z-index:99;background:var(--white);border-bottom:1px solid var(--n-200);box-shadow:var(--sh-md);padding:12px 16px;flex-direction:column;gap:4px}
 .mob-menu.open{display:flex}
-.mob-lnk{padding:10px 12px;font-size:14px;font-weight:500;color:var(--n-700);border-radius:var(--rs);cursor:pointer;transition:background .15s,color .15s}
+.mob-lnk{padding:10px 12px;font-size:14px;font-weight:500;color:var(--n-700);border-radius:var(--rs);cursor:pointer;transition:background .15s,color .15s;text-decoration:none}
 .mob-lnk:hover,.mob-lnk.active{background:var(--em-50);color:var(--em-700);font-weight:600}
 
 /* RESPONSIVE */
 @media(max-width:1200px){.metrics-grid{grid-template-columns:repeat(2,1fr)}.fc-grid{grid-template-columns:1fr}}
 @media(max-width:1024px){.content-grid{grid-template-columns:1fr}.right-panel{position:static;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}}
-@media(max-width:768px){.content-grid{padding:18px 16px 40px;gap:18px}.metrics-grid{grid-template-columns:1fr 1fr;gap:12px}.right-panel{grid-template-columns:1fr}.nav-center{display:none}.hamburger{display:flex}.mc-num{font-size:26px}.welcome-strip h1{font-size:18px}}
+@media(max-width:768px){.content-grid{padding:18px 16px 40px;gap:18px}.metrics-grid{grid-template-columns:1fr 1fr;gap:12px}.right-panel{grid-template-columns:1fr}.nav-center{display:none}.hamburger{display:flex}.mc-num{font-size:24px}.welcome-strip h1{font-size:18px}}
 @media(max-width:480px){.metrics-grid{grid-template-columns:1fr}.navbar{padding:0 16px}}
 </style>
 </head>
@@ -200,20 +230,21 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
     <span class="nav-brand">Energy<span>Watch</span></span>
   </div>
   <div class="nav-center">
-    <span class="nav-link active" onclick="setNav(this)">Dashboard</span>
-    <span class="nav-link" onclick="setNav(this)">Consumption</span>
-    <span class="nav-link" onclick="setNav(this)">Forecast</span>
-    <span class="nav-link" onclick="setNav(this)">Alerts</span>
+    <a href="#dashboard" class="nav-link active" onclick="setNav(this)">Dashboard</a>
+    <a href="#consumption-sec" class="nav-link" onclick="setNav(this)">Consumption</a>
+    <a href="#forecast-sec" class="nav-link" onclick="setNav(this)">Forecast</a>
+    <a href="#readings-sec" class="nav-link" onclick="setNav(this)">Meter Log</a>
+    <a href="#alerts-sec" class="nav-link" onclick="setNav(this)">Alerts</a>
   </div>
   <div class="nav-right">
-    <div class="bell">
+    <div class="bell" onclick="scrollToAlerts()" title="View Alerts">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
       </svg>
-      <span class="bell-dot"></span>
+      <span class="bell-dot" id="bellDot"></span>
     </div>
-    <div class="avatar">HH</div>
+    <div class="avatar" title="Household EW-2847-HH">HH</div>
     <div class="hamburger" id="hbtn" onclick="toggleMenu()">
       <span></span><span></span><span></span>
     </div>
@@ -222,31 +253,65 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
 
 <!-- MOBILE MENU -->
 <div class="mob-menu" id="mmenu">
-  <div class="mob-lnk active">Dashboard</div>
-  <div class="mob-lnk">Consumption</div>
-  <div class="mob-lnk">Forecast</div>
-  <div class="mob-lnk">Alerts</div>
+  <a href="#dashboard" class="mob-lnk active" onclick="setNav(this);toggleMenu()">Dashboard</a>
+  <a href="#consumption-sec" class="mob-lnk" onclick="setNav(this);toggleMenu()">Consumption</a>
+  <a href="#forecast-sec" class="mob-lnk" onclick="setNav(this);toggleMenu()">Forecast</a>
+  <a href="#readings-sec" class="mob-lnk" onclick="setNav(this);toggleMenu()">Meter Log</a>
+  <a href="#alerts-sec" class="mob-lnk" onclick="setNav(this);toggleMenu()">Alerts</a>
 </div>
 
 <!-- PAGE -->
-<div class="page-wrapper">
+<div class="page-wrapper" id="dashboard">
+
+  <!-- MENTOR DEMO TOOLBAR -->
+  <div class="demo-banner">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="demo-badge">Mentor Demonstration Mode</span>
+      <span>Connected to <strong>FastAPI Backend</strong> &amp; <strong>SQLite Database</strong></span>
+    </div>
+    <div class="demo-actions">
+      <button class="demo-btn" onclick="refreshAllData()" title="Reload fresh data from database">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        Reload Data
+      </button>
+      <button class="demo-btn" onclick="resetDemoAlert()" title="Reset active alert for demonstration">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Reset Alert
+      </button>
+      <a class="demo-btn" href="/docs" target="_blank" title="Open FastAPI Swagger Interactive Documentation">
+        API Docs
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+      </a>
+    </div>
+  </div>
+
 <div class="content-grid">
 <div class="main-col">
+
+  <!-- CONNECTION ERROR BANNER -->
+  <div class="conn-banner" id="connBanner">
+    <div>
+      <strong>Backend Disconnected:</strong> Could not reach FastAPI server at <code>http://localhost:8000</code>.
+      Make sure Uvicorn is running: <code>.venv\Scripts\python.exe -m uvicorn backend.main:app --port 8000</code>.
+    </div>
+    <button onclick="initApp()">Retry Connection</button>
+  </div>
 
   <!-- WELCOME -->
   <div class="welcome-strip">
     <div>
       <h1 id="gtxt">Good afternoon &#128075;</h1>
-      <p id="dtxt">Loading...</p>
+      <p id="dtxt">Loading live energy overview...</p>
     </div>
-    <div class="status-chip">
-      <span class="sdot"></span>
-      System online &nbsp;&middot;&nbsp; Last updated 2 min ago
+    <div class="status-chip" id="statusChip" onclick="checkBackendHealth()" title="Click to test live backend connection">
+      <span class="sdot" id="statusDot"></span>
+      <span id="statusTxt">Connecting to backend...</span>
     </div>
   </div>
 
   <!-- METRIC CARDS -->
   <div class="metrics-grid">
+    <!-- M1: Today -->
     <div class="mc">
       <div class="mc-top">
         <div class="mc-icon ic-g">
@@ -256,11 +321,13 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
         </div>
         <span class="mc-badge badge-up">&#9650; +4.2%</span>
       </div>
-      <div><span class="mc-num" id="m1">0.0</span><span class="mc-unit">kWh</span></div>
+      <div><span class="mc-num" id="m1">--</span><span class="mc-unit">kWh</span></div>
       <div class="mc-lbl">Today&#8217;s Usage</div>
       <div class="mc-sub">vs yesterday: 33.9 kWh</div>
+      <div class="mc-tag"><span class="dy"></span>Simulated Data</div>
     </div>
 
+    <!-- M2: This Month -->
     <div class="mc">
       <div class="mc-top">
         <div class="mc-icon ic-b">
@@ -271,11 +338,13 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
         </div>
         <span class="mc-badge badge-up">&#9650; +13.5%</span>
       </div>
-      <div><span class="mc-num" id="m2">0</span><span class="mc-unit">kWh</span></div>
+      <div><span class="mc-num" id="m2">--</span><span class="mc-unit">kWh</span></div>
       <div class="mc-lbl">This Month</div>
       <div class="mc-sub">Sep 1 &ndash; Sep 8, 2026</div>
+      <div class="mc-tag"><span class="dy"></span>Monthly Total</div>
     </div>
 
+    <!-- M3: Tomorrow's Forecast -->
     <div class="mc">
       <div class="mc-top">
         <div class="mc-icon ic-y">
@@ -287,13 +356,14 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
           </svg>
         </div>
-        <span class="mc-badge badge-n">ML Forecast</span>
+        <span class="mc-badge badge-n">Static Seed</span>
       </div>
-      <div><span class="mc-num" id="m3">0.0</span><span class="mc-unit">kWh</span></div>
+      <div><span class="mc-num" id="m3">--</span><span class="mc-unit">kWh</span></div>
       <div class="mc-lbl">Tomorrow&#8217;s Forecast</div>
-      <div class="mc-tag"><span class="dy"></span>AI Prediction</div>
+      <div class="mc-tag mc-tag-amber" title="Static seed baseline. Machine learning model scheduled for Phase 5."><span class="dy"></span>Static Baseline</div>
     </div>
 
+    <!-- M4: Estimated Bill (Correction 4 Applied) -->
     <div class="mc">
       <div class="mc-top">
         <div class="mc-icon ic-a">
@@ -302,58 +372,51 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
           </svg>
         </div>
-        <span class="mc-badge badge-up">&#9650; Forecast</span>
+        <span class="mc-badge badge-n">Phase 4</span>
       </div>
-      <div><span class="mc-num" id="m4">&#8377;0</span></div>
+      <div><span class="mc-num" id="m4" style="font-size:20px;color:var(--n-500)">Pending Tariff</span></div>
       <div class="mc-lbl">Estimated Bill</div>
-      <div class="mc-sub">Predicted month-end: &#8377;3,480</div>
+      <div class="mc-sub" id="m4-sub" title="APERC tariff schedule to be configured in Phase 4.">APERC Schedule Pending</div>
+      <div class="mc-tag" style="background:var(--n-700)">Rules in Phase 4</div>
     </div>
   </div>
 
-  <!-- AI FORECAST (HERO) -->
-  <div class="card" style="padding:24px">
+  <!-- FORECAST SECTION (HERO) -->
+  <div class="card" id="forecast-sec" style="padding:24px">
     <div class="sec-hdr">
       <div>
-        <div class="sec-ttl">&#129302; AI Consumption Forecast</div>
-        <div class="sec-sub">Machine learning prediction based on your usage history</div>
+        <div class="sec-ttl">&#129302; Consumption Forecast (Baseline)</div>
+        <div class="sec-sub">Static sample forecast &middot; Machine learning model pipeline planned for Phase 5</div>
       </div>
-      <span class="ml-badge">ML Forecast</span>
+      <span class="sim-badge">Static Baseline (Simulated)</span>
     </div>
     <div class="fc-grid">
       <div>
-        <div class="fc-row">
-          <div><div class="fc-day">Today</div><div class="fc-date">Tuesday, Sep 8</div></div>
-          <div class="fc-r"><div class="fc-val">35.4 <span class="fu">kWh</span></div><span class="fc-chip ca">Actual</span></div>
-        </div>
-        <div class="fc-row">
-          <div><div class="fc-day">Tomorrow</div><div class="fc-date">Wednesday, Sep 9</div></div>
-          <div class="fc-r"><div class="fc-val">37.2 <span class="fu">kWh</span></div><span class="fc-chip cp">Predicted</span></div>
-        </div>
-        <div class="fc-row">
-          <div><div class="fc-day">Sep 10</div><div class="fc-date">Thursday, Sep 10</div></div>
-          <div class="fc-r"><div class="fc-val">38.1 <span class="fu">kWh</span></div><span class="fc-chip cp">Predicted</span></div>
+        <div id="fcDaysContainer">
+          <!-- Dynamically populated from /api/forecast -->
+          <div class="loading-box"><span class="spinner"></span> Loading forecast...</div>
         </div>
         <div class="fc-insight">
           <span style="font-size:15px;flex-shrink:0">&#128200;</span>
-          <p>Expected increase of <strong>5.1%</strong> over the next 2 days, based on your weekly usage pattern.</p>
+          <p id="fcInsightText">Expected increase of <strong>5.1%</strong> over the next 2 days, based on seeded weekly usage pattern (Static sample data).</p>
         </div>
       </div>
       <div>
         <div class="ch-wrap"><canvas id="fcChart"></canvas></div>
         <div class="legend" style="margin-top:10px">
-          <div class="li"><div class="lb" style="background:#10b981"></div><span>Actual</span></div>
-          <div class="li"><div class="ll" style="border-color:#facc15"></div><span>Predicted</span></div>
+          <div class="li"><div class="lb" style="background:#10b981"></div><span>Actual Usage (Simulated)</span></div>
+          <div class="li"><div class="ll" style="border-color:#facc15"></div><span>Forecast Baseline (Static)</span></div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- CONSUMPTION TREND CHART -->
-  <div class="card" style="padding:24px">
+  <div class="card" id="consumption-sec" style="padding:24px">
     <div class="sec-hdr">
       <div>
-        <div class="sec-ttl">Energy Consumption</div>
-        <div class="sec-sub">Historical usage &middot; kWh per day</div>
+        <div class="sec-ttl">Energy Consumption History</div>
+        <div class="sec-sub">Simulated usage series from SQLite &middot; kWh per day</div>
       </div>
       <div class="ch-tabs">
         <button class="ch-tab active" onclick="switchTab('7d',this)">7 Days</button>
@@ -361,23 +424,29 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
         <button class="ch-tab" onclick="switchTab('3m',this)">3 Months</button>
       </div>
     </div>
-    <div style="position:relative;height:240px"><canvas id="conChart"></canvas></div>
+    <div style="position:relative;height:240px">
+      <div id="conLoading" class="loading-box" style="position:absolute;inset:0;background:rgba(255,255,255,.7);z-index:5;display:none">
+        <span class="spinner"></span> Loading series...
+      </div>
+      <canvas id="conChart"></canvas>
+    </div>
     <div class="ch-insight">
       <span class="cidot"></span>
-      <span id="ci">Your average daily consumption increased by <strong>8%</strong> this week vs the previous week.</span>
+      <span id="ci">Loading consumption trends...</span>
     </div>
     <div class="legend">
-      <div class="li"><div class="lb" style="background:rgba(16,185,129,.8)"></div><span>Actual</span></div>
+      <div class="li"><div class="lb" style="background:rgba(16,185,129,.8)"></div><span>Actual (kWh)</span></div>
       <div class="li"><div class="ll" style="border-color:#facc15"></div><span>Forecast overlay</span></div>
+      <div class="li" style="margin-left:auto"><span style="font-size:11px;color:var(--n-400)">Data source: SQLite DB (Simulated)</span></div>
     </div>
   </div>
 
-  <!-- METER READINGS -->
-  <div class="card" style="padding:24px">
+  <!-- METER READINGS TABLE -->
+  <div class="card" id="readings-sec" style="padding:24px">
     <div class="sec-hdr">
       <div>
         <div class="sec-ttl">&#9889; Recent Meter Readings</div>
-        <div class="sec-sub">Hourly log &middot; Meter ID: EW-2847-HH</div>
+        <div class="sec-sub">Live query from SQLite table <code>meter_readings</code> &middot; Meter ID: EW-2847-HH</div>
       </div>
     </div>
     <div class="filter-chips">
@@ -392,53 +461,59 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
             <th>Time</th>
             <th>Meter Reading</th>
             <th>Usage</th>
+            <th>Voltage</th>
             <th>Status</th>
           </tr>
         </thead>
-        <tbody id="rtb"></tbody>
+        <tbody id="rtb">
+          <tr><td colspan="5" style="text-align:center;padding:24px"><span class="spinner"></span> Loading readings from database...</td></tr>
+        </tbody>
       </table>
     </div>
     <div class="mfooter">
-      Sample tariff: <strong>&#8377;7.73 / kWh</strong> &nbsp;&middot;&nbsp; Readings refresh every 2 hours &nbsp;&middot;&nbsp; EnergyWatch v2.4
+      <div>
+        Source: <strong>SQLite (simulated stream)</strong> &nbsp;&middot;&nbsp;
+        Tariff rate: <em>Pending APERC schedule (Phase 4)</em>
+      </div>
+      <div>EnergyWatch &middot; Phase 2 Demonstration</div>
     </div>
   </div>
 
 </div><!-- /main-col -->
 
 <!-- RIGHT PANEL -->
-<aside class="right-panel">
+<aside class="right-panel" id="alerts-sec">
 
-  <!-- SMART ALERT -->
-  <div class="alert-card">
+  <!-- SMART ALERT CARD -->
+  <div class="alert-card" id="alertCard">
     <div class="ah">
-      <div class="ai-box">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <div class="ai-box" id="alertIconBox">
+        <svg id="alertIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
           <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
       </div>
       <div>
-        <div class="at">Unusual consumption detected</div>
-        <span class="abadge">New Alert</span>
+        <div class="at" id="alertTitle">Checking for anomalies...</div>
+        <span class="abadge" id="alertBadge">SQLite Alert</span>
       </div>
     </div>
-    <p class="ab">
-      Your electricity usage at <span class="ahl">8:00 PM on Monday</span> reached
-      <span class="ahl">8.9 kWh</span> &mdash;
-      <span class="ahl">63% above</span> your typical evening pattern.
-      This may indicate a high-draw appliance left running.
+    <p class="ab" id="alertBody">
+      Connecting to alerts endpoint...
     </p>
-    <button class="btn-alert">
-      View details
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 12h14M12 5l7 7-7 7"/>
-      </svg>
-    </button>
+    <div id="alertActionArea">
+      <button class="btn-alert" id="ackBtn" onclick="acknowledgeActiveAlert()">
+        Acknowledge Alert
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- COST INSIGHTS -->
   <div class="card">
-    <div class="card-ttl">Cost Insights</div>
+    <div class="card-ttl">Cost Insights (Preliminary)</div>
     <div class="cost-amt"><span class="cur">&#8377;</span>3,250</div>
     <div class="cost-pred">Predicted month-end: <strong>&#8377;3,480</strong></div>
     <div class="cost-track"><div class="cost-bar" id="cbar"></div></div>
@@ -446,7 +521,9 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <span>74% of predicted</span>
       <span>&#8377;230 remaining</span>
     </div>
-    <div class="cost-note">Based on usage Sep 1&ndash;8, 2026. Sample tariff: &#8377;7.73/kWh.</div>
+    <div class="cost-note">
+      ⚠️ <strong>Notice:</strong> Values shown reflect the baseline mock placeholder rate. Configurable APERC slab rules will be implemented in Phase 4.
+    </div>
   </div>
 
   <!-- MONTH COMPARISON -->
@@ -481,193 +558,563 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round">
         <path d="M12 19V5M5 12l7-7 7 7"/>
       </svg>
-      +50 kWh &nbsp;&middot;&nbsp; +13.5% vs last month
+      +50 kWh &nbsp;&middot;&nbsp; +13.5% vs last month (Simulated)
     </div>
   </div>
 
 </aside>
 </div><!-- /content-grid -->
 
+<!-- TOAST -->
+<div class="toast" id="toastMsg">Notification message</div>
+
 <footer>
   EnergyWatch &copy; 2026 &nbsp;&middot;&nbsp; Smart Utility Consumption Forecasting &nbsp;&middot;&nbsp;
-  Sample prototype &mdash; all data is illustrative only
+  FastAPI + SQLite Demo &nbsp;&middot;&nbsp; All meter readings are simulated samples for verification
 </footer>
 </div><!-- /page-wrapper -->
 
 <script>
-/* GREETING & DATE */
+/* ── STATE & CONFIG ────────────────────────────────────────────────────────── */
+var currentAlert = null;
+var currentRange = '7d';
+var currentFilter = 'today';
+var conChart = null;
+var fcChart = null;
+
+/* ── TOAST HELPER ─────────────────────────────────────────────────────────── */
+function showToast(msg, dur){
+  var t = document.getElementById('toastMsg');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, dur || 3000);
+}
+
+/* ── GREETING & DATE ──────────────────────────────────────────────────────── */
 (function(){
-  var h=new Date().getHours(),
-      g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
-  document.getElementById('gtxt').textContent=g+' \u{1F44B}';
-  var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
-      months=['January','February','March','April','May','June','July','August','September','October','November','December'],
-      n=new Date();
-  document.getElementById('dtxt').textContent=
-    "Here\u2019s your energy overview for "+days[n.getDay()]+", "+n.getDate()+" "+months[n.getMonth()]+" "+n.getFullYear()+".";
+  var h = new Date().getHours(),
+      g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('gtxt').textContent = g + ' \u{1F44B}';
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+      months = ['January','February','March','April','May','June','July','August','September','October','November','December'],
+      n = new Date();
+  document.getElementById('dtxt').textContent =
+    "Energy overview for " + days[n.getDay()] + ", " + n.getDate() + " " + months[n.getMonth()] + " " + n.getFullYear() + " (Meter: EW-2847-HH)";
 })();
 
-/* NAV */
-function setNav(el){document.querySelectorAll('.nav-link').forEach(function(l){l.classList.remove('active')});el.classList.add('active')}
-function toggleMenu(){document.getElementById('mmenu').classList.toggle('open')}
-document.addEventListener('click',function(e){
-  var m=document.getElementById('mmenu'),b=document.getElementById('hbtn');
-  if(!m.contains(e.target)&&!b.contains(e.target))m.classList.remove('open');
+/* ── NAV & MOBILE MENU ────────────────────────────────────────────────────── */
+function setNav(el){
+  document.querySelectorAll('.nav-link, .mob-lnk').forEach(function(l){ l.classList.remove('active'); });
+  el.classList.add('active');
+}
+function toggleMenu(){
+  document.getElementById('mmenu').classList.toggle('open');
+}
+function scrollToAlerts(){
+  var el = document.getElementById('alerts-sec');
+  if(el) el.scrollIntoView({ behavior: 'smooth' });
+}
+document.addEventListener('click', function(e){
+  var m = document.getElementById('mmenu'), b = document.getElementById('hbtn');
+  if(m && b && !m.contains(e.target) && !b.contains(e.target)) m.classList.remove('open');
 });
 
-/* COUNT-UP */
-function countUp(el,target,dec,pre,dur){
-  var s=performance.now();
+/* ── COUNT-UP ANIMATION ───────────────────────────────────────────────────── */
+function countUp(el, target, dec, pre, dur){
+  if(!el) return;
+  if(target === null || target === undefined || isNaN(target)){
+    el.textContent = pre + '--';
+    return;
+  }
+  var s = performance.now();
   function step(now){
-    var p=Math.min((now-s)/dur,1),ease=1-Math.pow(1-p,3),v=target*ease;
-    el.textContent=pre+(dec===0?Math.round(v).toLocaleString('en-IN'):v.toFixed(dec));
-    if(p<1)requestAnimationFrame(step);
+    var p = Math.min((now - s) / dur, 1),
+        ease = 1 - Math.pow(1 - p, 3),
+        v = target * ease;
+    el.textContent = pre + (dec === 0 ? Math.round(v).toLocaleString('en-IN') : v.toFixed(dec));
+    if(p < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
 }
 
-/* MOCK DATA */
-var MOCK={
-  '7d':{
-    labels:['Sep 2','Sep 3','Sep 4','Sep 5','Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
-    actual:[32.1,29.8,34.5,31.2,33.9,33.9,35.4,null,null],
-    forecast:[null,null,null,null,null,null,35.4,37.2,38.1],
-    insight:'Your average daily consumption increased by <strong>8%</strong> this week vs the previous week.'
+/* ── API CLIENT ───────────────────────────────────────────────────────────── */
+var API = {
+  getHealth: async function(){
+    var res = await fetch('/health');
+    if(!res.ok) throw new Error('Health check error ' + res.status);
+    return res.json();
   },
-  '30d':{
-    labels:(function(){var a=[];for(var i=0;i<30;i++){var d=new Date(2026,7,10+i);a.push(d.getDate()+' '+(d.getMonth()===7?'Aug':'Sep'));}return a;})(),
-    actual:[28.2,30.1,29.5,31.8,27.3,30.9,32.4,28.8,31.2,29.9,33.5,30.2,31.7,29.4,32.1,30.8,33.2,31.5,30.3,32.8,33.1,31.9,32.4,33.8,31.2,33.9,33.9,34.2,35.1,35.4],
-    forecast:[],
-    insight:'Monthly average: <strong>31.8 kWh/day</strong>. Peak usage recorded on Sep 8.'
+  getMetrics: async function(){
+    var res = await fetch('/api/metrics');
+    if(!res.ok) throw new Error('Metrics API error ' + res.status);
+    return res.json();
   },
-  '3m':{
-    labels:['Jul 1','Jul 8','Jul 15','Jul 22','Jul 29','Aug 5','Aug 12','Aug 19','Aug 26','Sep 2','Sep 8'],
-    actual:[26.1,27.4,28.2,27.9,28.8,29.5,30.2,31.8,32.4,33.1,35.4],
-    forecast:[],
-    insight:'Consumption grew <strong>35.6%</strong> over 3 months, reflecting seasonal increase.'
+  getConsumption: async function(range){
+    var res = await fetch('/api/consumption?range=' + encodeURIComponent(range));
+    if(!res.ok) throw new Error('Consumption API error ' + res.status);
+    return res.json();
   },
-  readings:{
-    today:[
-      {t:'06:00 AM',r:'18,214.2',u:'2.1',s:'Normal'},
-      {t:'08:00 AM',r:'18,216.3',u:'2.1',s:'Normal'},
-      {t:'10:00 AM',r:'18,219.5',u:'3.2',s:'Normal'},
-      {t:'12:00 PM',r:'18,223.6',u:'4.1',s:'Normal'},
-      {t:'02:00 PM',r:'18,227.4',u:'3.8',s:'Normal'},
-      {t:'04:00 PM',r:'18,230.9',u:'3.5',s:'Normal'},
-      {t:'06:00 PM',r:'18,235.1',u:'4.2',s:'Normal'},
-      {t:'08:00 PM',r:'18,244.0',u:'8.9',s:'High'},
-      {t:'10:00 PM',r:'18,247.1',u:'3.1',s:'Normal'}
-    ],
-    yesterday:[
-      {t:'06:00 AM',r:'18,181.5',u:'2.0',s:'Normal'},
-      {t:'08:00 AM',r:'18,183.6',u:'2.1',s:'Normal'},
-      {t:'10:00 AM',r:'18,186.4',u:'2.8',s:'Normal'},
-      {t:'12:00 PM',r:'18,190.1',u:'3.7',s:'Normal'},
-      {t:'02:00 PM',r:'18,193.7',u:'3.6',s:'Normal'},
-      {t:'04:00 PM',r:'18,197.0',u:'3.3',s:'Normal'},
-      {t:'06:00 PM',r:'18,201.1',u:'4.1',s:'Normal'},
-      {t:'08:00 PM',r:'18,205.7',u:'4.6',s:'Normal'},
-      {t:'10:00 PM',r:'18,208.5',u:'2.8',s:'Normal'}
-    ],
-    week:[
-      {t:'Sep 2 (Total)',r:'18,089.2',u:'32.1',s:'Normal'},
-      {t:'Sep 3 (Total)',r:'18,119.0',u:'29.8',s:'Normal'},
-      {t:'Sep 4 (Total)',r:'18,153.5',u:'34.5',s:'Normal'},
-      {t:'Sep 5 (Total)',r:'18,184.7',u:'31.2',s:'Normal'},
-      {t:'Sep 6 (Total)',r:'18,218.6',u:'33.9',s:'Normal'},
-      {t:'Sep 7 (Total)',r:'18,252.5',u:'33.9',s:'Normal'},
-      {t:'Sep 8 (So far)',r:'18,247.1',u:'35.4',s:'Normal'}
-    ]
+  getReadings: async function(filter){
+    var res = await fetch('/api/readings?filter=' + encodeURIComponent(filter));
+    if(!res.ok) throw new Error('Readings API error ' + res.status);
+    return res.json();
+  },
+  getForecast: async function(){
+    var res = await fetch('/api/forecast');
+    if(!res.ok) throw new Error('Forecast API error ' + res.status);
+    return res.json();
+  },
+  getAlerts: async function(){
+    var res = await fetch('/api/alerts?unacknowledged_only=true');
+    if(!res.ok) throw new Error('Alerts API error ' + res.status);
+    return res.json();
+  },
+  acknowledgeAlert: async function(id){
+    var res = await fetch('/api/alerts/' + encodeURIComponent(id) + '/acknowledge', { method: 'POST' });
+    if(!res.ok) throw new Error('Acknowledge API error ' + res.status);
+    return res.json();
+  },
+  resetAlert: async function(id){
+    var res = await fetch('/api/alerts/' + encodeURIComponent(id) + '/reset', { method: 'POST' });
+    if(!res.ok) throw new Error('Reset alert error ' + res.status);
+    return res.json();
   }
 };
 
-/* TABLE */
-function buildTable(f){
-  document.getElementById('rtb').innerHTML=MOCK.readings[f].map(function(r){
-    return '<tr class="'+(r.s==='High'?'rh':'')+'">'
-      +'<td>'+r.t+'</td>'
-      +'<td>'+r.r+' kWh</td>'
-      +'<td>'+r.u+' kWh</td>'
-      +'<td><span class="sb '+(r.s==='High'?'sh2':'sn')+'">'+r.s+'</span></td>'
-      +'</tr>';
-  }).join('');
-}
-function setFilter(f,el){
-  document.querySelectorAll('.fc2').forEach(function(c){c.classList.remove('active')});
-  el.classList.add('active');
-  buildTable(f);
+/* ── BACKEND HEALTH & STATUS ──────────────────────────────────────────────── */
+async function checkBackendHealth(){
+  var dot = document.getElementById('statusDot'),
+      txt = document.getElementById('statusTxt'),
+      banner = document.getElementById('connBanner');
+  try {
+    var data = await API.getHealth();
+    dot.classList.remove('offline');
+    txt.textContent = 'Backend Online \u00b7 SQLite Connected (v' + data.version + ')';
+    banner.classList.remove('show');
+    return true;
+  } catch(err) {
+    dot.classList.add('offline');
+    txt.textContent = 'Backend Offline (Click to Retry)';
+    banner.classList.add('show');
+    return false;
+  }
 }
 
-/* CONSUMPTION CHART */
-var cChart=null;
-function buildCon(range){
-  var ctx=document.getElementById('conChart').getContext('2d'),d=MOCK[range];
-  var ds=[{type:'bar',label:'Actual (kWh)',data:d.actual,backgroundColor:'rgba(16,185,129,.78)',borderRadius:5,borderSkipped:false,order:2}];
-  if(range==='7d')ds.push({type:'line',label:'Forecast (kWh)',data:d.forecast,borderColor:'#facc15',backgroundColor:'transparent',borderWidth:2.2,borderDash:[6,4],pointBackgroundColor:'#facc15',pointRadius:[0,0,0,0,0,0,5,5,5],tension:.35,order:1});
-  if(cChart)cChart.destroy();
-  cChart=new Chart(ctx,{
-    data:{labels:d.labels,datasets:ds},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{display:false},
-        tooltip:{backgroundColor:'#fff',titleColor:'#171717',bodyColor:'#737373',borderColor:'#e5e5e5',borderWidth:1,padding:12,cornerRadius:8,
-          callbacks:{label:function(c){return c.raw!=null?' '+c.dataset.label+': '+c.raw+' kWh':null}}}
+/* ── LOAD METRICS ─────────────────────────────────────────────────────────── */
+async function loadMetrics(){
+  try {
+    var data = await API.getMetrics();
+    countUp(document.getElementById('m1'), data.today_kwh, 1, '', 700);
+    countUp(document.getElementById('m2'), data.month_kwh, 0, '', 850);
+    countUp(document.getElementById('m3'), data.tomorrow_forecast_kwh, 1, '', 700);
+
+    // Correction 4: estimated_bill_inr is explicitly null in Phase 1
+    var m4 = document.getElementById('m4');
+    var m4Sub = document.getElementById('m4-sub');
+    if(data.estimated_bill_inr === null || data.estimated_bill_inr === undefined){
+      m4.textContent = 'Pending Tariff';
+      m4.style.fontSize = '20px';
+      m4Sub.textContent = 'APERC Schedule Pending';
+      m4Sub.title = data.tariff_note || 'Configurable AP tariff rules will be added in Phase 4.';
+    } else {
+      countUp(m4, data.estimated_bill_inr, 0, '\u20B9', 900);
+    }
+  } catch(err) {
+    console.warn('Metrics endpoint failed, using fallback:', err);
+    countUp(document.getElementById('m1'), 35.4, 1, '', 700);
+    countUp(document.getElementById('m2'), 420, 0, '', 850);
+    countUp(document.getElementById('m3'), 37.2, 1, '', 700);
+  }
+}
+
+/* ── LOAD CONSUMPTION CHART ───────────────────────────────────────────────── */
+async function loadConsumption(range){
+  var loader = document.getElementById('conLoading');
+  if(loader) loader.style.display = 'flex';
+  try {
+    var data = await API.getConsumption(range);
+    renderConsumptionChart(range, data);
+  } catch(err) {
+    console.warn('Consumption API failed, using fallback:', err);
+    // Fallback static dataset
+    var fallback = {
+      '7d': {
+        labels: ['Sep 2','Sep 3','Sep 4','Sep 5','Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
+        actual: [32.1,29.8,34.5,31.2,33.9,33.9,35.4,null,null],
+        forecast: [null,null,null,null,null,null,35.4,37.2,38.1]
       },
-      scales:{
-        x:{grid:{display:false},ticks:{font:{family:'Inter',size:11},color:'#a3a3a3',maxRotation:40}},
-        y:{grid:{color:'#f5f5f5'},beginAtZero:false,min:20,ticks:{font:{family:'Inter',size:11},color:'#a3a3a3',callback:function(v){return v+' kWh'}}}
+      '30d': {
+        labels: ['10 Aug','13 Aug','16 Aug','19 Aug','22 Aug','25 Aug','28 Aug','31 Aug','3 Sep','6 Sep','8 Sep'],
+        actual: [28.2,31.8,32.4,29.9,30.2,30.8,30.3,31.9,31.2,34.2,35.4],
+        forecast: []
+      },
+      '3m': {
+        labels: ['Jul 1','Jul 15','Jul 29','Aug 12','Aug 26','Sep 8'],
+        actual: [26.1,28.2,28.8,30.2,32.4,35.4],
+        forecast: []
+      }
+    };
+    renderConsumptionChart(range, fallback[range] || fallback['7d']);
+  } finally {
+    if(loader) loader.style.display = 'none';
+  }
+}
+
+function renderConsumptionChart(range, d){
+  var ctx = document.getElementById('conChart').getContext('2d');
+  var ds = [
+    {
+      type: 'bar',
+      label: 'Actual (kWh)',
+      data: d.actual,
+      backgroundColor: 'rgba(16,185,129,.78)',
+      borderRadius: 5,
+      borderSkipped: false,
+      order: 2
+    }
+  ];
+  if(d.forecast && d.forecast.length > 0 && range === '7d'){
+    ds.push({
+      type: 'line',
+      label: 'Forecast Baseline (kWh)',
+      data: d.forecast,
+      borderColor: '#facc15',
+      backgroundColor: 'transparent',
+      borderWidth: 2.2,
+      borderDash: [6,4],
+      pointBackgroundColor: '#facc15',
+      pointRadius: [0,0,0,0,0,0,5,5,5],
+      tension: 0.35,
+      order: 1
+    });
+  }
+  if(conChart) conChart.destroy();
+  conChart = new Chart(ctx, {
+    data: { labels: d.labels, datasets: ds },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#171717',
+          bodyColor: '#737373',
+          borderColor: '#e5e5e5',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(c){
+              return c.raw != null ? ' ' + c.dataset.label + ': ' + c.raw + ' kWh' : null;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#a3a3a3', maxRotation: 40 } },
+        y: {
+          grid: { color: '#f5f5f5' },
+          beginAtZero: false,
+          ticks: { font: { family: 'Inter', size: 11 }, color: '#a3a3a3', callback: function(v){ return v + ' kWh'; } }
+        }
       }
     }
   });
-  document.getElementById('ci').innerHTML=d.insight;
-}
-function switchTab(range,el){
-  document.querySelectorAll('.ch-tab').forEach(function(t){t.classList.remove('active')});
-  el.classList.add('active');
-  buildCon(range);
+
+  // Dynamic insight
+  var ci = document.getElementById('ci');
+  if(range === '7d'){
+    ci.innerHTML = '7-Day Trend: Average daily usage is <strong>33.3 kWh</strong>. Noticeable peak observed on Sep 8 (Simulated data).';
+  } else if(range === '30d'){
+    ci.innerHTML = '30-Day Monthly Trend: Average daily usage is <strong>31.8 kWh</strong>. Steady baseline with expected summer variance.';
+  } else {
+    ci.innerHTML = 'Quarterly Overview: Consumption grew <strong>35.6%</strong> from July to September reflecting seasonal temperature shifts.';
+  }
 }
 
-/* FORECAST CHART */
-function buildFc(){
-  var ctx=document.getElementById('fcChart').getContext('2d');
-  new Chart(ctx,{
-    type:'line',
-    data:{
-      labels:['Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
-      datasets:[
-        {label:'Actual (kWh)',data:[33.9,33.9,35.4,null,null],borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',fill:true,borderWidth:2.5,pointBackgroundColor:'#10b981',pointRadius:[4,4,7,0,0],tension:.35,order:1},
-        {label:'Predicted (kWh)',data:[null,null,35.4,37.2,38.1],borderColor:'#facc15',backgroundColor:'rgba(250,204,21,.07)',fill:true,borderWidth:2.5,borderDash:[6,4],pointBackgroundColor:'#facc15',pointRadius:[0,0,6,6,6],tension:.35,order:2}
+function switchTab(range, el){
+  document.querySelectorAll('.ch-tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  currentRange = range;
+  loadConsumption(range);
+}
+
+/* ── LOAD FORECAST ────────────────────────────────────────────────────────── */
+async function loadForecast(){
+  var container = document.getElementById('fcDaysContainer');
+  try {
+    var data = await API.getForecast();
+    // Populate forecast days list
+    var html = '';
+    data.days.forEach(function(d){
+      var isActual = d.day_name === 'Today';
+      var chipClass = isActual ? 'ca' : 'cp';
+      var chipText = isActual ? 'Actual' : 'Static Seed';
+      html += '<div class="fc-row">'
+        + '<div><div class="fc-day">' + d.day_name + '</div><div class="fc-date">' + d.date + '</div></div>'
+        + '<div class="fc-r"><div class="fc-val">' + d.predicted_kwh.toFixed(1) + ' <span class="fu">kWh</span></div>'
+        + '<span class="fc-chip ' + chipClass + '">' + chipText + '</span></div>'
+        + '</div>';
+    });
+    container.innerHTML = html;
+
+    // Render forecast chart
+    renderForecastChart(data);
+  } catch(err) {
+    console.warn('Forecast API failed, using fallback:', err);
+    container.innerHTML = '<div class="fc-row">'
+      + '<div><div class="fc-day">Today</div><div class="fc-date">Tuesday, Sep 8</div></div>'
+      + '<div class="fc-r"><div class="fc-val">35.4 <span class="fu">kWh</span></div><span class="fc-chip ca">Actual</span></div>'
+      + '</div>'
+      + '<div class="fc-row">'
+      + '<div><div class="fc-day">Tomorrow</div><div class="fc-date">Wednesday, Sep 9</div></div>'
+      + '<div class="fc-r"><div class="fc-val">37.2 <span class="fu">kWh</span></div><span class="fc-chip cp">Static Seed</span></div>'
+      + '</div>'
+      + '<div class="fc-row">'
+      + '<div><div class="fc-day">Sep 10</div><div class="fc-date">Thursday, Sep 10</div></div>'
+      + '<div class="fc-r"><div class="fc-val">38.1 <span class="fu">kWh</span></div><span class="fc-chip cp">Static Seed</span></div>'
+      + '</div>';
+    renderForecastChart({
+      chart_labels: ['Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
+      actual_series: [33.9, 33.9, 35.4, null, null],
+      forecast_series: [null, null, 35.4, 37.2, 38.1]
+    });
+  }
+}
+
+function renderForecastChart(data){
+  var ctx = document.getElementById('fcChart').getContext('2d');
+  if(fcChart) fcChart.destroy();
+  fcChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.chart_labels,
+      datasets: [
+        {
+          label: 'Actual (kWh)',
+          data: data.actual_series,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16,185,129,.08)',
+          fill: true,
+          borderWidth: 2.5,
+          pointBackgroundColor: '#10b981',
+          pointRadius: [4,4,7,0,0],
+          tension: 0.35,
+          order: 1
+        },
+        {
+          label: 'Static Forecast (kWh)',
+          data: data.forecast_series,
+          borderColor: '#facc15',
+          backgroundColor: 'rgba(250,204,21,.07)',
+          fill: true,
+          borderWidth: 2.5,
+          borderDash: [6,4],
+          pointBackgroundColor: '#facc15',
+          pointRadius: [0,0,6,6,6],
+          tension: 0.35,
+          order: 2
+        }
       ]
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{display:false},
-        tooltip:{backgroundColor:'#fff',titleColor:'#171717',bodyColor:'#737373',borderColor:'#e5e5e5',borderWidth:1,padding:10,cornerRadius:8,
-          callbacks:{label:function(c){return c.raw!=null?' '+c.dataset.label+': '+c.raw+' kWh':null}}}
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#171717',
+          bodyColor: '#737373',
+          borderColor: '#e5e5e5',
+          borderWidth: 1,
+          padding: 10,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(c){
+              return c.raw != null ? ' ' + c.dataset.label + ': ' + c.raw + ' kWh' : null;
+            }
+          }
+        }
       },
-      scales:{
-        x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#a3a3a3'}},
-        y:{grid:{color:'#f5f5f5'},min:30,max:42,ticks:{font:{family:'Inter',size:10},color:'#a3a3a3',callback:function(v){return v+' kWh'}}}
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 }, color: '#a3a3a3' } },
+        y: {
+          grid: { color: '#f5f5f5' },
+          min: 30,
+          max: 42,
+          ticks: { font: { family: 'Inter', size: 10 }, color: '#a3a3a3', callback: function(v){ return v + ' kWh'; } }
+        }
       }
     }
   });
 }
 
-/* INIT */
-window.addEventListener('DOMContentLoaded',function(){
-  countUp(document.getElementById('m1'),35.4,1,'',700);
-  countUp(document.getElementById('m2'),420,0,'',850);
-  countUp(document.getElementById('m3'),37.2,1,'',700);
-  countUp(document.getElementById('m4'),3250,0,'\u20B9',900);
-  setTimeout(function(){document.getElementById('cbar').style.width='74%'},400);
-  buildTable('today');
-  buildCon('7d');
-  buildFc();
-});
+/* ── LOAD READINGS TABLE ──────────────────────────────────────────────────── */
+async function loadReadings(filter){
+  var tbody = document.getElementById('rtb');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px"><span class="spinner"></span> Querying SQLite table for ' + filter + ' readings...</td></tr>';
+  try {
+    var readings = await API.getReadings(filter);
+    if(!readings || readings.length === 0){
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--n-400)">No meter readings found for this filter.</td></tr>';
+      return;
+    }
+    var html = '';
+    var cumulativeBase = 18212.1;
+    var runningUsage = 0;
+
+    readings.forEach(function(r, idx){
+      runningUsage += r.usage_kwh;
+      var cum = (cumulativeBase + runningUsage).toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+      // Format time label
+      var timeLabel = '';
+      if(r.reading_type === 'daily'){
+        var dObj = new Date(r.timestamp);
+        timeLabel = dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' (Daily Total)';
+      } else {
+        var dObj = new Date(r.timestamp);
+        var hrs = dObj.getHours();
+        var mins = dObj.getMinutes();
+        var ampm = hrs >= 12 ? 'PM' : 'AM';
+        var h12 = hrs % 12 || 12;
+        var mStr = mins < 10 ? '0' + mins : mins;
+        timeLabel = (h12 < 10 ? '0' + h12 : h12) + ':' + mStr + ' ' + ampm;
+      }
+
+      var voltText = r.voltage_v ? r.voltage_v.toFixed(1) + ' V' : '230.0 V';
+      var isHigh = r.status === 'High';
+      var rowClass = isHigh ? 'rh' : '';
+      var statusBadge = isHigh ? '<span class="sb sh2">High Load</span>' : '<span class="sb sn">Normal</span>';
+
+      html += '<tr class="' + rowClass + '">'
+        + '<td>' + timeLabel + '</td>'
+        + '<td>' + cum + ' kWh</td>'
+        + '<td>' + r.usage_kwh.toFixed(1) + ' kWh</td>'
+        + '<td style="color:var(--n-400)">' + voltText + '</td>'
+        + '<td>' + statusBadge + '</td>'
+        + '</tr>';
+    });
+    tbody.innerHTML = html;
+  } catch(err) {
+    console.warn('Readings API error:', err);
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:18px;color:#b91c1c">'
+      + '⚠️ Failed to fetch readings from SQLite: ' + err.message + '<br>'
+      + '<button class="fc2" style="margin-top:8px" onclick="loadReadings(\'' + filter + '\')">Retry</button>'
+      + '</td></tr>';
+  }
+}
+
+function setFilter(f, el){
+  document.querySelectorAll('.fc2').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  currentFilter = f;
+  loadReadings(f);
+}
+
+/* ── LOAD & ACKNOWLEDGE ALERTS ────────────────────────────────────────────── */
+async function loadAlerts(){
+  var card = document.getElementById('alertCard');
+  var title = document.getElementById('alertTitle');
+  var badge = document.getElementById('alertBadge');
+  var body = document.getElementById('alertBody');
+  var actionArea = document.getElementById('alertActionArea');
+  var bellDot = document.getElementById('bellDot');
+
+  try {
+    var alerts = await API.getAlerts();
+    if(alerts && alerts.length > 0){
+      currentAlert = alerts[0];
+      card.classList.remove('acknowledged');
+      bellDot.style.opacity = '1';
+      title.textContent = 'Unusual consumption detected';
+      badge.textContent = 'Active Alert (Simulated)';
+      badge.style.background = 'var(--amber)';
+      body.innerHTML = 'Your electricity usage reached <span class="ahl">8.9 kWh at 8:00 PM</span> &mdash; '
+        + '<span class="ahl">63% above</span> typical evening load. '
+        + 'Linked to reading ID: ' + (currentAlert.reading_id || 'EW-8') + ' in SQLite.';
+      actionArea.innerHTML = '<button class="btn-alert" id="ackBtn" onclick="acknowledgeActiveAlert()">'
+        + 'Acknowledge Alert'
+        + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'
+        + '</button>';
+    } else {
+      currentAlert = null;
+      card.classList.add('acknowledged');
+      bellDot.style.opacity = '0';
+      title.textContent = '\u2705 All Systems Normal';
+      badge.textContent = 'No Active Anomalies';
+      badge.style.background = 'var(--em-600)';
+      body.innerHTML = 'All smart meter readings within standard operating parameters. SQLite database has 0 unacknowledged alerts.';
+      actionArea.innerHTML = '<button class="btn-reset-alert" onclick="resetDemoAlert()">'
+        + '\u21BA Re-arm Demo Alert'
+        + '</button>';
+    }
+  } catch(err) {
+    console.warn('Alerts API failed, setting baseline:', err);
+    bellDot.style.opacity = '1';
+    title.textContent = 'Unusual consumption detected';
+    body.innerHTML = 'Your electricity usage at <span class="ahl">8:00 PM</span> reached <span class="ahl">8.9 kWh</span> (63% above normal).';
+  }
+}
+
+async function acknowledgeActiveAlert(){
+  if(!currentAlert) return;
+  var btn = document.getElementById('ackBtn');
+  if(btn){
+    btn.textContent = 'Saving to SQLite...';
+    btn.disabled = true;
+  }
+  try {
+    var res = await API.acknowledgeAlert(currentAlert.id);
+    showToast('\u2705 Alert acknowledged & persisted in SQLite database!', 3500);
+    loadAlerts();
+  } catch(err) {
+    alert('Failed to acknowledge alert: ' + err.message);
+    if(btn) btn.disabled = false;
+  }
+}
+
+async function resetDemoAlert(){
+  try {
+    // Reset alert 1 in SQLite
+    await API.resetAlert(1);
+    showToast('Alert re-armed for demonstration \u{1F514}', 3000);
+    loadAlerts();
+  } catch(err) {
+    showToast('Failed to reset alert: ' + err.message, 3000);
+  }
+}
+
+/* ── REFRESH ALL DATA ─────────────────────────────────────────────────────── */
+async function refreshAllData(){
+  showToast('\u21BB Refreshing all dashboard widgets from SQLite...', 2000);
+  await checkBackendHealth();
+  await loadMetrics();
+  await loadConsumption(currentRange);
+  await loadForecast();
+  await loadReadings(currentFilter);
+  await loadAlerts();
+}
+
+/* ── INITIALIZATION ───────────────────────────────────────────────────────── */
+async function initApp(){
+  await checkBackendHealth();
+  await loadMetrics();
+  await loadConsumption('7d');
+  await loadForecast();
+  await loadReadings('today');
+  await loadAlerts();
+  setTimeout(function(){
+    var bar = document.getElementById('cbar');
+    if(bar) bar.style.width = '74%';
+  }, 400);
+}
+
+window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
 </html>

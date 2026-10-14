@@ -44,3 +44,26 @@ def acknowledge_alert(
         acknowledged_at=alert.acknowledged_at,
         message="Alert acknowledged successfully",
     )
+
+
+@router.post("/alerts/{alert_id}/reset", response_model=AlertAcknowledgeResponse)
+def reset_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+):
+    """Reset an acknowledged alert back to active status (useful for demonstrations)."""
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    alert.acknowledged = False
+    alert.acknowledged_at = None
+    db.commit()
+    db.refresh(alert)
+
+    return AlertAcknowledgeResponse(
+        id=alert.id,
+        acknowledged=False,
+        acknowledged_at=datetime.now(timezone.utc),
+        message="Alert reset to active successfully",
+    )
