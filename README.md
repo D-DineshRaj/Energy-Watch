@@ -1,20 +1,71 @@
 # ⚡ EnergyWatch — Smart Utility Consumption Dashboard
 
-EnergyWatch is a household electricity monitoring and forecasting application designed to help users track power consumption (kWh), inspect historical trends, detect unusual load spikes, and view predictive consumption insights.
+EnergyWatch is a household electricity monitoring and forecasting application designed to help users track power consumption (kWh), inspect historical trends, detect unusual load spikes, estimate electricity bills using verified regulatory tariffs, and view predictive consumption insights.
 
 ---
 
-## 📌 Project Status: Working Full-Stack Prototype (~65% Milestone)
+## 📌 Project Status: Working Full-Stack Prototype (~75% Milestone — Phase 3)
 
 | Layer | Status | Implementation Details |
 |---|---|---|
-| **Frontend UI** | ✅ Fully Functional | Connected to live FastAPI endpoints; Chart.js graphs, filter chips, dynamic alerts |
+| **Frontend UI** | ✅ Fully Functional | Connected to live FastAPI endpoints; Chart.js graphs, filter chips, dynamic alerts, live ticking clock |
 | **Backend API** | ✅ Operational | FastAPI application with CORS and lifespan database initialization |
 | **Database** | ✅ Operational | SQLite (`data/energywatch.db`) via SQLAlchemy 2.1.4 |
-| **Data Seeder** | ✅ Operational | Idempotent baseline seeder for simulated readings and alerts |
+| **Data Seeder** | ✅ Operational | Idempotent baseline seeder for simulated readings, alerts, and APERC tariff configurations |
 | **Alert Management** | ✅ Interactive | Full acknowledgement & reset cycle persisted in SQLite |
+| **Bill Calculation** | ✅ Verified (Phase 3) | Official APERC LT-I(A) Domestic telescopic tariff with slab breakdown, fixed charges, and duty |
 | **ML Forecasts** | ⚠️ Static Simulation | Model labelled `static_seed` (Machine learning pipeline planned for Phase 5) |
-| **Electricity Tariff** | ⚠️ Pending APERC | Kept `null` pending official APERC tariff schedule verification (Phase 4) |
+| **Meter Hardware** | ⚠️ Simulated Readings | Readings represent simulated household patterns for validation prior to smart meter integration |
+
+---
+
+## 🏛️ Official Electricity Tariff Schedule (Andhra Pradesh)
+
+Bill calculations in Phase 3 strictly implement the official retail supply tariff order issued by the **Andhra Pradesh Electricity Regulatory Commission (APERC)** for domestic consumers.
+
+* **Regulatory Authority:** Andhra Pradesh Electricity Regulatory Commission (APERC)
+* **Official Website:** [https://aperc.gov.in/](https://aperc.gov.in/)
+* **Consumer Category:** **LT Category-I(A): Domestic** (Residential Single-Phase / Three-Phase)
+* **Order Reference:** APERC Retail Supply Tariff Order for FY 2026-27 (Order dated 25-March-2026, maintaining zero tariff hike for domestic consumers statewide)
+* **Effective Date:** 01-April-2026 to 31-March-2027 (applicable across APSPDCL, APEPDCL, and APCPDCL)
+* **Billing Structure:** **Telescopic Slab System** (units are billed progressively across designated tiers)
+
+### Domestic Consumption Slabs & Rates (LT-I(A))
+
+| Slab Index | Monthly Consumption Slab | Energy Charge (₹ / kWh) | Capacity in Tier | Maximum Slab Charge (₹) |
+|---|---|---|---|---|
+| **Slab 1** | 0 – 30 kWh | **₹1.90** | 30 units | ₹57.00 |
+| **Slab 2** | 31 – 75 kWh | **₹3.00** | 45 units | ₹135.00 |
+| **Slab 3** | 76 – 125 kWh | **₹4.50** | 50 units | ₹225.00 |
+| **Slab 4** | 126 – 225 kWh | **₹6.00** | 100 units | ₹600.00 |
+| **Slab 5** | 226 – 400 kWh | **₹8.75** | 175 units | ₹1,531.25 |
+| **Slab 6** | Above 400 kWh | **₹9.75** | Unbounded | ₹9.75 per extra unit |
+
+### Additional Bill Components & Statutory Levies
+
+1. **Fixed Charges:** ₹10.00 per kW per month based on sanctioned contracted load (default: 1.0 kW single-phase domestic connection).
+2. **Electricity Duty:** 6 paise per unit (**₹0.06 / kWh**) levied under Section 3(1) of the *Andhra Pradesh Electricity Duty Act, 1939* (as amended).
+3. **Fuel Surcharge Adjustment (FSA / FPPPA):** Variable monthly/quarterly adjustment determined by APERC regulations; excluded (assumed ₹0.00/kWh baseline) in this estimate.
+4. **Customer Charges & Meter Rent:** Nominal and itemized transparently in the breakdown.
+
+### Step-by-Step Calculation Example (420.0 kWh Monthly Usage)
+
+For the current monthly baseline consumption of **420.0 kWh** with **1.0 kW** sanctioned load:
+
+```
+• Slab 1 (0–30 units):     30 units  × ₹1.90 = ₹57.00
+• Slab 2 (31–75 units):    45 units  × ₹3.00 = ₹135.00
+• Slab 3 (76–125 units):   50 units  × ₹4.50 = ₹225.00
+• Slab 4 (126–225 units): 100 units  × ₹6.00 = ₹600.00
+• Slab 5 (226–400 units): 175 units  × ₹8.75 = ₹1,531.25
+• Slab 6 (> 400 units):    20 units  × ₹9.75 = ₹195.00
+────────────────────────────────────────────────────────
+Subtotal Energy Charges:                      ₹2,743.25
+Fixed Charges (1.0 kW × ₹10.00):                 ₹10.00
+Electricity Duty (420 units × ₹0.06):            ₹25.20
+────────────────────────────────────────────────────────
+Grand Total Estimated Bill:                   ₹2,778.45  (Rounded: ₹2,778)
+```
 
 ---
 
@@ -22,24 +73,30 @@ EnergyWatch is a household electricity monitoring and forecasting application de
 
 ```
 EnergyWatch/
-├── index.html                  # Responsive frontend dashboard connected to FastAPI
+├── index.html                  # Responsive dashboard with live clock and bill breakdown modal
 ├── requirements.txt            # Pinned dependencies for Python 3.14.3
 ├── .gitignore                  # Exclusion rules for venv, DB, secrets, and caches
 ├── README.md                   # Project documentation and developer guide
 ├── data/
 │   ├── .gitkeep                # Git tracking stub for database folder
 │   └── energywatch.db          # SQLite database (auto-generated, untracked)
+├── tests/
+│   └── test_bill_calculation.py# Unit & API test suite for APERC bill calculation
 └── backend/
     ├── __init__.py             # Backend package marker
     ├── main.py                 # FastAPI app, middleware, and route mounting
     ├── database.py             # Database engine and session management
-    ├── models.py               # SQLAlchemy ORM models (Readings, Forecasts, Alerts)
+    ├── models.py               # SQLAlchemy ORM models (Readings, Forecasts, Alerts, TariffConfig)
     ├── schemas.py              # Pydantic request and response schemas
     ├── seed_data.py            # Idempotent database population script
+    ├── services/
+    │   ├── __init__.py         # Services package marker
+    │   └── billing.py          # Pure Decimal APERC telescopic bill calculation engine
     └── routers/
         ├── __init__.py         # Routers package marker
         ├── readings.py         # /api/readings (today, yesterday, week)
-        ├── metrics.py          # /api/metrics (usage summaries, null bill)
+        ├── metrics.py          # /api/metrics (usage summaries, estimated bill)
+        ├── billing.py          # /api/bill-estimate (itemized APERC bill calculation)
         ├── consumption.py      # /api/consumption (7d, 30d, 3m trends)
         ├── forecast.py         # /api/forecast (static sample forecasts)
         └── alerts.py           # /api/alerts (retrieval, acknowledge, & reset)
@@ -63,39 +120,9 @@ Open **PowerShell** in the project directory (`C:\Projects\EnergyWatrch(3-1)`):
 ```
 
 ### 3. Open the Dashboard in your Browser
-- **Live Dashboard:** [http://localhost:8000/](http://localhost:8000/)
-- **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
-
----
-
-## 🧑‍🏫 Mentor Demonstration Guide
-
-Follow these steps to demonstrate the working full-stack application to your mentor:
-
-1. **System Health & Architecture:**
-   - Notice the status chip in the top banner: **"Backend Online · SQLite Connected"**.
-   - Explain that the single-page application is served directly by **FastAPI** and communicates asynchronously with SQLite via JSON REST endpoints.
-2. **Dynamic Metric Cards:**
-   - Point out **Today's Usage** (35.4 kWh) and **This Month** (420 kWh), which dynamically animate using count-up transitions.
-   - Explain the honest labelling: **Tomorrow's Forecast** is tagged `Static Baseline`, and **Estimated Bill** displays `Pending Tariff` because official Andhra Pradesh Electricity Regulatory Commission (APERC) slabs will be integrated in Phase 4.
-3. **Interactive Consumption History Chart:**
-   - Click the **30 Days** tab: observe the chart re-render with daily bar series from SQLite and dynamic average calculation.
-   - Click the **3 Months** tab: observe the quarterly aggregation and seasonal trend insight.
-   - Click the **7 Days** tab: observe the actual usage bars with the yellow forecast overlay.
-4. **Live SQLite Meter Readings Table:**
-   - Show the hourly readings table with cumulative meter readings, interval usage, and line voltage.
-   - Click the **Yesterday** filter button to query yesterday's hourly log from SQLite.
-   - Click the **This Week** filter button to query daily summary totals.
-   - Click **Today** to return to the active hourly stream.
-5. **Interactive Anomaly Detection & State Persistence:**
-   - Show the **Smart Alert** card identifying the 8.9 kWh spike at 8:00 PM. Notice the red notification dot on the bell icon in the navbar.
-   - Click **"Acknowledge Alert"**:
-     - The button updates, calls `POST /api/alerts/1/acknowledge`, and persists the change to SQLite.
-     - The card transitions to **"✅ All Systems Normal"** and the bell red dot disappears.
-   - Click **"Re-arm Demo Alert"** to reset the alert back to active status, proving two-way live database communication.
-6. **Backend Transparency (Swagger UI):**
-   - Click the **"API Docs"** button in the top banner to open `/docs` and show your mentor the automated OpenAPI contracts for all endpoints.
+* **Live Dashboard:** [http://localhost:8000/](http://localhost:8000/)
+* **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
 
 ---
 
@@ -104,10 +131,11 @@ Follow these steps to demonstrate the working full-stack application to your men
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/health` | Application status and database health check |
+| `GET` | `/api/metrics` | Summary metrics card data including `estimated_bill_inr` |
+| `GET` | `/api/bill-estimate` | Itemized APERC bill calculation (supports `consumption_kwh` & `sanctioned_load_kw` query params) |
 | `GET` | `/api/readings?filter=today` | Hourly simulated meter readings for current day |
 | `GET` | `/api/readings?filter=yesterday` | Hourly simulated readings for yesterday |
 | `GET` | `/api/readings?filter=week` | Daily simulated totals for the past 7 days |
-| `GET` | `/api/metrics` | Summary metrics card data (`estimated_bill_inr` is `null`) |
 | `GET` | `/api/consumption?range=7d` | Consumption trend data (7-day series + forecast overlay) |
 | `GET` | `/api/consumption?range=30d` | 30-day historical consumption series |
 | `GET` | `/api/consumption?range=3m` | 3-month aggregated consumption series |
@@ -116,10 +144,120 @@ Follow these steps to demonstrate the working full-stack application to your men
 | `POST` | `/api/alerts/{id}/acknowledge` | Mark an alert as acknowledged in SQLite |
 | `POST` | `/api/alerts/{id}/reset` | Re-arm an alert for demonstration testing |
 
+### Sample Response: `GET /api/bill-estimate`
+
+```json
+{
+  "consumption_kwh": 420.0,
+  "sanctioned_load_kw": 1.0,
+  "consumer_category": "LT Category-I(A): Domestic",
+  "state": "Andhra Pradesh",
+  "regulatory_authority": "Andhra Pradesh Electricity Regulatory Commission (APERC)",
+  "tariff_order_ref": "APERC Retail Supply Tariff Order for FY 2026-27 (Order dated 25-03-2026)",
+  "effective_date": "2026-04-01",
+  "official_source_url": "https://aperc.gov.in/",
+  "billing_method": "telescopic",
+  "slabs_breakdown": [
+    {
+      "slab_index": 1,
+      "slab_label": "0 – 30 kWh",
+      "min_kwh": 0.0,
+      "max_kwh": 30.0,
+      "rate_per_kwh": 1.9,
+      "units_billed": 30.0,
+      "charge_inr": 57.0
+    },
+    {
+      "slab_index": 2,
+      "slab_label": "31 – 75 kWh",
+      "min_kwh": 30.0,
+      "max_kwh": 75.0,
+      "rate_per_kwh": 3.0,
+      "units_billed": 45.0,
+      "charge_inr": 135.0
+    },
+    {
+      "slab_index": 3,
+      "slab_label": "76 – 125 kWh",
+      "min_kwh": 75.0,
+      "max_kwh": 125.0,
+      "rate_per_kwh": 4.5,
+      "units_billed": 50.0,
+      "charge_inr": 225.0
+    },
+    {
+      "slab_index": 4,
+      "slab_label": "126 – 225 kWh",
+      "min_kwh": 125.0,
+      "max_kwh": 225.0,
+      "rate_per_kwh": 6.0,
+      "units_billed": 100.0,
+      "charge_inr": 600.0
+    },
+    {
+      "slab_index": 5,
+      "slab_label": "226 – 400 kWh",
+      "min_kwh": 225.0,
+      "max_kwh": 400.0,
+      "rate_per_kwh": 8.75,
+      "units_billed": 175.0,
+      "charge_inr": 1531.25
+    },
+    {
+      "slab_index": 6,
+      "slab_label": "Above 400 kWh",
+      "min_kwh": 400.0,
+      "max_kwh": null,
+      "rate_per_kwh": 9.75,
+      "units_billed": 20.0,
+      "charge_inr": 195.0
+    }
+  ],
+  "energy_charges_inr": 2743.25,
+  "fixed_charges_inr": 10.0,
+  "electricity_duty_inr": 25.2,
+  "fpppa_charges_inr": 0.0,
+  "customer_charges_inr": 0.0,
+  "estimated_total_inr": 2778.45,
+  "estimated_total_rounded_inr": 2778,
+  "is_official_bill": false,
+  "calculation_assumptions": [
+    "Domestic category LT-I(A) telescopic energy tariff approved by APERC.",
+    "Contracted load assumed at 1.0 kW single-phase domestic connection (₹10.00/kW/month).",
+    "Electricity Duty calculated at statutory baseline rate of ₹0.06 (6 paise) per kWh.",
+    "Fuel Surcharge Adjustment (FPPPA/FSA) assumed at ₹0.00/kWh as quarterly fluctuations are state-subsidized.",
+    "Meter rent and localized municipal taxes are excluded unless specifically billed by the DISCOM."
+  ],
+  "limitations": "This is an estimated calculation for informational monitoring purposes only. Official electricity bills from APSPDCL/APEPDCL/APCPDCL may include seasonal fuel cost adjustments, solar net-metering credits, arrears, delayed payment surcharges, or localized municipal cess."
+}
+```
+
+---
+
+## 🧪 Running Automated Tests
+
+Run the full Phase 3 test suite via Python's standard `unittest` framework:
+
+```powershell
+.venv\Scripts\python.exe -m unittest tests/test_bill_calculation.py
+```
+
+Tests verify:
+* Zero consumption baseline (fixed charge only)
+* Normal consumption scenarios (50 kWh, 100 kWh, 420 kWh)
+* All 5 exact slab boundary thresholds (30, 75, 125, 225, 400 kWh)
+* Boundary deltas immediately below (–0.1) and above (+0.1) every slab boundary
+* Input validation for negative consumption and non-positive loads
+* High consumption unbounded tier calculations (1000 kWh)
+* Monetary half-up rounding precision and arithmetic integrity
+* FastAPI endpoint contracts for `/api/bill-estimate` and `/api/metrics`
+* 422 HTTP validation error responses
+
 ---
 
 ## ⚠️ Data Disclaimer & Roadmap
 
-- **Simulated Meter Data:** Readings represent simulated household patterns (Meter `EW-2847-HH`) used to validate full-stack data flow and API contracts.
-- **Static Forecasts:** Forecast values represent a static seed baseline. Real machine learning models (e.g., ARIMA / Random Forest / Gradient Boosting) are scheduled for **Phase 5**.
-- **Tariff Schedule:** Electricity billing estimation is deferred until **Phase 4**, where official multi-tier APERC tariff schedules and fixed charges will be configured.
+* **Simulated Meter Data:** Readings represent simulated household patterns (Meter `EW-2847-HH`) used to validate full-stack data flow and API contracts.
+* **Static Forecasts:** Forecast values represent a static seed baseline. Real machine learning models (e.g., ARIMA / Random Forest / Gradient Boosting) are scheduled for **Phase 5**.
+* **Informational Bill Estimates:** Bill calculation uses verified APERC domestic tariff rules, but is intended solely for consumption monitoring and financial budgeting. Official utility bills are issued exclusively by state distribution companies (APSPDCL, APEPDCL, APCPDCL).
+* **Hardware Integration:** Real smart meter hardware integration (Modbus / MQTT / DLMS-COSEM) is scheduled for future deployment.

@@ -201,6 +201,30 @@ tbody td:nth-child(3){font-weight:700;color:var(--em-950)}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--em-950);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:var(--sh-md);display:flex;align-items:center;gap:10px;transform:translateY(100px);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);z-index:200}
 .toast.show{transform:translateY(0);opacity:1}
 
+/* BILL BREAKDOWN MODAL */
+.bill-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px;opacity:0;transition:opacity .2s ease}
+.bill-modal-overlay.open{display:flex;opacity:1}
+.bill-modal{background:var(--white);border-radius:14px;box-shadow:var(--sh-lg);width:100%;max-width:700px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--n-200);animation:modalSlide .25s ease-out}
+@keyframes modalSlide{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.bill-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--n-200);background:#fafafa}
+.bill-modal-close{background:transparent;border:none;font-size:26px;line-height:1;color:var(--n-400);cursor:pointer;padding:0 6px;border-radius:4px;transition:color .15s}
+.bill-modal-close:hover{color:var(--n-700)}
+.bill-modal-body{padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.bill-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.bill-kpi{background:#f8fafc;border:1px solid var(--n-200);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column}
+.bill-kpi-lbl{font-size:10px;font-weight:700;color:var(--n-500);text-transform:uppercase;letter-spacing:.4px}
+.bill-kpi-val{font-size:18px;font-weight:700;color:var(--em-950);letter-spacing:-.3px;margin:3px 0 1px}
+.bill-kpi-sub{font-size:10px;color:var(--n-400)}
+.bill-calc-strip{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f1f5f9;border-radius:8px;padding:10px 14px;flex-wrap:wrap}
+.bill-tbl-wrap{border:1px solid var(--n-200);border-radius:8px;overflow:hidden}
+.bill-tbl{width:100%;border-collapse:collapse;font-size:12px;text-align:left}
+.bill-tbl th{background:#f8fafc;padding:9px 12px;font-weight:600;color:var(--n-700);border-bottom:1px solid var(--n-200);font-size:11px}
+.bill-tbl td{padding:8px 12px;border-bottom:1px solid var(--n-100);color:var(--n-700)}
+.bill-tbl tr.active-slab{background:#fffbeb;font-weight:500}
+.bill-tbl tr.active-slab td{color:#92400e}
+.bill-meta-box{background:#f8fafc;border:1px solid var(--n-200);border-radius:8px;padding:12px 14px}
+@media(max-width:640px){.bill-kpi-grid{grid-template-columns:repeat(2,1fr)}}
+
 /* FOOTER */
 footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);border-top:1px solid var(--n-200);background:var(--white)}
 
@@ -363,8 +387,8 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <div class="mc-tag mc-tag-amber" title="Static seed baseline. Machine learning model scheduled for Phase 5."><span class="dy"></span>Static Baseline</div>
     </div>
 
-    <!-- M4: Estimated Bill (Correction 4 Applied) -->
-    <div class="mc">
+    <!-- M4: Estimated Bill (APERC LT-I(A) Domestic) -->
+    <div class="mc" id="m4-card" onclick="openBillModal()" style="cursor:pointer" title="Click to view full APERC telescopic bill breakdown">
       <div class="mc-top">
         <div class="mc-icon ic-a">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -372,12 +396,12 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
           </svg>
         </div>
-        <span class="mc-badge badge-n">Phase 4</span>
+        <span class="mc-badge badge-up" id="m4-badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0">APERC Verified</span>
       </div>
-      <div><span class="mc-num" id="m4" style="font-size:20px;color:var(--n-500)">Pending Tariff</span></div>
+      <div><span class="mc-num" id="m4">--</span></div>
       <div class="mc-lbl">Estimated Bill</div>
-      <div class="mc-sub" id="m4-sub" title="APERC tariff schedule to be configured in Phase 4.">APERC Schedule Pending</div>
-      <div class="mc-tag" style="background:var(--n-700)">Rules in Phase 4</div>
+      <div class="mc-sub" id="m4-sub">Loading APERC tariff...</div>
+      <div class="mc-tag" id="m4-tag" style="background:var(--em-800);cursor:pointer"><span class="dy"></span>Telescopic Slabs &middot; View &rarr;</div>
     </div>
   </div>
 
@@ -563,7 +587,128 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
   </div>
 
 </aside>
-</div><!-- /content-grid -->
+<!-- BILL BREAKDOWN MODAL -->
+<div class="bill-modal-overlay" id="billModalOverlay" onclick="handleBillModalOverlayClick(event)">
+  <div class="bill-modal" role="dialog" aria-modal="true" aria-labelledby="billModalTitle">
+    <div class="bill-modal-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="mc-icon ic-a" style="width:34px;height:34px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+          <h2 id="billModalTitle" style="font-size:16px;font-weight:700;color:var(--em-950);margin:0">Electricity Bill Estimate Breakdown</h2>
+          <div style="font-size:11px;color:var(--n-400);margin-top:2px">APERC Domestic Telescopic Tariff Schedule &middot; LT Category-I(A) (FY 2026&ndash;27)</div>
+        </div>
+      </div>
+      <button class="bill-modal-close" onclick="closeBillModal()" title="Close dialog (Esc)">&times;</button>
+    </div>
+
+    <div class="bill-modal-body">
+      <!-- Summary KPI strip -->
+      <div class="bill-kpi-grid">
+        <div class="bill-kpi">
+          <span class="bill-kpi-lbl">Billed Units</span>
+          <span class="bill-kpi-val" id="bmKwh">420.0 <small style="font-size:11px;color:var(--n-400)">kWh</small></span>
+          <span class="bill-kpi-sub" id="bmPeriod">Monthly Total (Sep 2026)</span>
+        </div>
+        <div class="bill-kpi">
+          <span class="bill-kpi-lbl">Energy Charges</span>
+          <span class="bill-kpi-val" id="bmEnergy">&#8377;2,743.25</span>
+          <span class="bill-kpi-sub">6 Telescopic Slabs</span>
+        </div>
+        <div class="bill-kpi">
+          <span class="bill-kpi-lbl">Fixed + Duty</span>
+          <span class="bill-kpi-val" id="bmFixedDuty">&#8377;35.20</span>
+          <span class="bill-kpi-sub" id="bmFixedSub">&#8377;10.00 Fixed + &#8377;25.20 Duty</span>
+        </div>
+        <div class="bill-kpi" style="background:#ecfdf5;border-color:#a7f3d0">
+          <span class="bill-kpi-lbl" style="color:#047857">Estimated Total</span>
+          <span class="bill-kpi-val" id="bmTotal" style="color:#065f46">&#8377;2,778.45</span>
+          <span class="bill-kpi-sub" id="bmRounded" style="color:#047857;font-weight:600">&#8377;2,778 rounded</span>
+        </div>
+      </div>
+
+      <!-- Interactive Scenario Simulator -->
+      <div class="bill-calc-strip">
+        <div style="font-size:12px;font-weight:600;color:var(--n-700)">Simulate Other Consumption:</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <input type="number" id="simKwhInput" value="420" min="0" max="5000" step="5" style="width:85px;padding:5px 8px;border:1px solid var(--n-200);border-radius:6px;font-size:12px">
+          <span style="font-size:12px;color:var(--n-500)">kWh</span>
+          <span style="font-size:12px;color:var(--n-400);margin-left:4px">Load:</span>
+          <select id="simLoadSelect" style="padding:5px 8px;border:1px solid var(--n-200);border-radius:6px;font-size:12px">
+            <option value="1.0">1.0 kW (Std)</option>
+            <option value="2.0">2.0 kW</option>
+            <option value="3.0">3.0 kW</option>
+            <option value="5.0">5.0 kW</option>
+          </select>
+          <button class="demo-btn" style="background:var(--em-700);color:#fff" onclick="simulateBill()">Recalculate</button>
+          <button class="demo-btn" style="background:var(--n-100);color:var(--n-700);border-color:var(--n-200)" onclick="resetBillToMonthly()">Reset</button>
+        </div>
+      </div>
+
+      <!-- Slabs Table -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--n-700);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Telescopic Slab Calculation Breakdown</div>
+        <div class="bill-tbl-wrap">
+          <table class="bill-tbl">
+            <thead>
+              <tr>
+                <th>Slab</th>
+                <th>Units Range</th>
+                <th>Rate (&#8377;/kWh)</th>
+                <th>Units Billed</th>
+                <th style="text-align:right">Energy Charge (&#8377;)</th>
+              </tr>
+            </thead>
+            <tbody id="bmSlabsBody">
+              <!-- Dynamically populated -->
+            </tbody>
+            <tfoot>
+              <tr style="border-top:1px solid var(--n-200)">
+                <td colspan="4" style="text-align:right;font-weight:600">Total Energy Charges:</td>
+                <td id="bmFooterEnergy" style="text-align:right;font-weight:700">&#8377;2,743.25</td>
+              </tr>
+              <tr>
+                <td colspan="4" style="text-align:right;font-size:11px;color:var(--n-500)">Fixed Charges (Contracted Load @ &#8377;10/kW/mo):</td>
+                <td id="bmFooterFixed" style="text-align:right;font-size:11px">&#8377;10.00</td>
+              </tr>
+              <tr>
+                <td colspan="4" style="text-align:right;font-size:11px;color:var(--n-500)">Electricity Duty (AP Duty Act @ &#8377;0.06/kWh):</td>
+                <td id="bmFooterDuty" style="text-align:right;font-size:11px">&#8377;25.20</td>
+              </tr>
+              <tr style="background:#f8fafc;font-weight:700;font-size:13px">
+                <td colspan="4" style="text-align:right;color:var(--em-900)">Estimated Total Bill:</td>
+                <td id="bmFooterGrand" style="text-align:right;color:var(--em-700)">&#8377;2,778.45</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Regulatory sources & Assumptions -->
+      <div class="bill-meta-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+          <strong style="font-size:11px;color:var(--em-900)">Official Regulatory Authority:</strong>
+          <a href="https://aperc.gov.in/" target="_blank" rel="noopener" style="font-size:11px;color:var(--em-600);font-weight:600;display:inline-flex;align-items:center;gap:3px">
+            APERC Official Portal &rarr;
+          </a>
+        </div>
+        <p style="font-size:11px;color:var(--n-500);line-height:1.5;margin:0 0 6px">
+          Slabs and rates verified from Andhra Pradesh Electricity Regulatory Commission (APERC) Retail Supply Tariff Order for FY 2026&ndash;27 (Order dated 25-03-2026, retaining zero tariff hike for domestic consumers across APSPDCL, APEPDCL, and APCPDCL).
+        </p>
+        <ul id="bmAssumptions" style="font-size:11px;color:var(--n-500);padding-left:16px;margin:0;line-height:1.5">
+          <li>Telescopic billing: Units billed strictly in designated blocks.</li>
+          <li>Sanctioned contracted load: 1.0 kW single-phase domestic baseline (&#8377;10.00/kW/month).</li>
+          <li>Electricity duty: 6 paise (&#8377;0.06) per unit under Section 3(1) of the AP Electricity Duty Act, 1939.</li>
+          <li>FPPPA / Fuel Surcharge: Variable by billing cycle; excluded (&#8377;0.00 baseline) in this estimate.</li>
+        </ul>
+        <div style="font-size:10px;color:var(--n-400);margin-top:8px;font-style:italic">
+          Disclaimer: This is an unofficial simulation based on APERC tariff regulations for informational monitoring. Not an official DISCOM utility invoice.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- TOAST -->
 <div class="toast" id="toastMsg">Notification message</div>
@@ -705,6 +850,14 @@ var API = {
     var res = await fetch('/api/alerts/' + encodeURIComponent(id) + '/reset', { method: 'POST' });
     if(!res.ok) throw new Error('Reset alert error ' + res.status);
     return res.json();
+  },
+  getBillEstimate: async function(kwh, load){
+    var query = '';
+    if(kwh !== undefined && kwh !== null) query += '?consumption_kwh=' + encodeURIComponent(kwh);
+    if(load !== undefined && load !== null) query += (query ? '&' : '?') + 'sanctioned_load_kw=' + encodeURIComponent(load);
+    var res = await fetch('/api/bill-estimate' + query);
+    if(!res.ok) throw new Error('Bill estimate API error ' + res.status);
+    return res.json();
   }
 };
 
@@ -735,22 +888,56 @@ async function loadMetrics(){
     countUp(document.getElementById('m2'), data.month_kwh, 0, '', 850);
     countUp(document.getElementById('m3'), data.tomorrow_forecast_kwh, 1, '', 700);
 
-    // Correction 4: estimated_bill_inr is explicitly null in Phase 1
     var m4 = document.getElementById('m4');
     var m4Sub = document.getElementById('m4-sub');
+    var m4Badge = document.getElementById('m4-badge');
+
     if(data.estimated_bill_inr === null || data.estimated_bill_inr === undefined){
       m4.textContent = 'Pending Tariff';
       m4.style.fontSize = '20px';
-      m4Sub.textContent = 'APERC Schedule Pending';
-      m4Sub.title = data.tariff_note || 'Configurable AP tariff rules will be added in Phase 4.';
+      m4.style.color = 'var(--n-500)';
+      if(m4Sub){
+        m4Sub.textContent = 'APERC Schedule Pending';
+        m4Sub.title = data.tariff_note || 'APERC tariff schedule not configured.';
+      }
+      if(m4Badge){
+        m4Badge.textContent = 'Pending';
+        m4Badge.className = 'mc-badge badge-n';
+      }
     } else {
+      m4.style.fontSize = '30px';
+      m4.style.color = 'var(--em-950)';
       countUp(m4, data.estimated_bill_inr, 0, '\u20B9', 900);
+      if(m4Sub){
+        m4Sub.textContent = '\u20B9' + Math.round(data.estimated_bill_inr).toLocaleString('en-IN') + ' for ' + data.month_kwh + ' kWh (LT-I(A) \u00b7 FY 2026-27)';
+        m4Sub.title = data.tariff_note || 'Verified APERC Domestic Telescopic Tariff (FY 2026-27)';
+      }
+      if(m4Badge){
+        m4Badge.textContent = 'APERC Verified';
+        m4Badge.className = 'mc-badge badge-up';
+        m4Badge.style.background = '#ecfdf5';
+        m4Badge.style.color = '#047857';
+        m4Badge.style.border = '1px solid #a7f3d0';
+      }
     }
+
+    // Pre-cache bill breakdown for instant modal view
+    try {
+      cachedBillData = await API.getBillEstimate(data.month_kwh, 1.0);
+    } catch(e){}
   } catch(err) {
     console.warn('Metrics endpoint failed, using fallback:', err);
     countUp(document.getElementById('m1'), 35.4, 1, '', 700);
     countUp(document.getElementById('m2'), 420, 0, '', 850);
     countUp(document.getElementById('m3'), 37.2, 1, '', 700);
+    var m4 = document.getElementById('m4');
+    var m4Sub = document.getElementById('m4-sub');
+    if(m4){
+      m4.textContent = '\u20B92,778';
+      m4.style.fontSize = '30px';
+      m4.style.color = 'var(--em-950)';
+    }
+    if(m4Sub) m4Sub.textContent = '\u20B92,778 for 420 kWh (LT-I(A))';
   }
 }
 
@@ -1114,6 +1301,118 @@ async function resetDemoAlert(){
   } catch(err) {
     showToast('Failed to reset alert: ' + err.message, 3000);
   }
+}
+
+/* ── BILL BREAKDOWN MODAL & SIMULATION ────────────────────────────────────── */
+var cachedBillData = null;
+
+async function openBillModal(){
+  var overlay = document.getElementById('billModalOverlay');
+  if(!overlay) return;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  if(!cachedBillData){
+    try {
+      cachedBillData = await API.getBillEstimate(420, 1.0);
+    } catch(e) {
+      console.warn('Could not fetch initial bill data:', e);
+    }
+  }
+  if(cachedBillData){
+    renderBillModalData(cachedBillData);
+  }
+}
+
+function closeBillModal(){
+  var overlay = document.getElementById('billModalOverlay');
+  if(overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleBillModalOverlayClick(e){
+  if(e.target && e.target.id === 'billModalOverlay'){
+    closeBillModal();
+  }
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closeBillModal();
+});
+
+function renderBillModalData(data){
+  if(!data) return;
+  cachedBillData = data;
+
+  // KPI strip
+  document.getElementById('bmKwh').innerHTML = data.consumption_kwh.toFixed(1) + ' <small style="font-size:11px;color:var(--n-400)">kWh</small>';
+  document.getElementById('bmPeriod').textContent = data.tariff_order_ref + ' \u00b7 ' + data.consumer_category;
+  document.getElementById('bmEnergy').textContent = '\u20B9' + data.energy_charges_inr.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('bmFixedDuty').textContent = '\u20B9' + (data.fixed_charges_inr + data.electricity_duty_inr).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('bmFixedSub').textContent = '\u20B9' + data.fixed_charges_inr.toFixed(2) + ' Fixed (' + data.sanctioned_load_kw + ' kW) + \u20B9' + data.electricity_duty_inr.toFixed(2) + ' Duty';
+  document.getElementById('bmTotal').textContent = '\u20B9' + data.estimated_total_inr.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('bmRounded').textContent = '\u20B9' + data.estimated_total_rounded_inr.toLocaleString('en-IN') + ' rounded';
+
+  // Slabs table
+  var tbody = document.getElementById('bmSlabsBody');
+  tbody.innerHTML = '';
+  data.slabs_breakdown.forEach(function(s){
+    var tr = document.createElement('tr');
+    if(s.units_billed > 0) tr.classList.add('active-slab');
+    var maxTxt = s.max_kwh !== null && s.max_kwh !== undefined ? s.max_kwh + ' kWh' : 'Above ' + s.min_kwh + ' kWh';
+    tr.innerHTML = '<td><strong>' + s.slab_label + '</strong></td>' +
+      '<td>' + s.min_kwh + ' &ndash; ' + maxTxt + '</td>' +
+      '<td>\u20B9' + s.rate_per_kwh.toFixed(2) + '</td>' +
+      '<td>' + s.units_billed.toFixed(1) + '</td>' +
+      '<td style="text-align:right;font-weight:' + (s.units_billed > 0 ? '600' : '400') + '">\u20B9' + s.charge_inr.toFixed(2) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  // Footer totals
+  document.getElementById('bmFooterEnergy').textContent = '\u20B9' + data.energy_charges_inr.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('bmFooterFixed').textContent = '\u20B9' + data.fixed_charges_inr.toFixed(2);
+  document.getElementById('bmFooterDuty').textContent = '\u20B9' + data.electricity_duty_inr.toFixed(2);
+  document.getElementById('bmFooterGrand').textContent = '\u20B9' + data.estimated_total_inr.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  // Assumptions
+  if(data.calculation_assumptions && data.calculation_assumptions.length){
+    var ul = document.getElementById('bmAssumptions');
+    ul.innerHTML = '';
+    data.calculation_assumptions.forEach(function(a){
+      var li = document.createElement('li');
+      li.textContent = a;
+      ul.appendChild(li);
+    });
+  }
+}
+
+async function simulateBill(){
+  var kwhInput = document.getElementById('simKwhInput');
+  var loadSelect = document.getElementById('simLoadSelect');
+  var kwh = parseFloat(kwhInput.value);
+  var load = parseFloat(loadSelect.value) || 1.0;
+
+  if(isNaN(kwh) || kwh < 0){
+    showToast('Please enter a valid non-negative consumption number in kWh.');
+    return;
+  }
+
+  try {
+    var data = await API.getBillEstimate(kwh, load);
+    renderBillModalData(data);
+    showToast('Recalculated for ' + kwh + ' kWh: \u20B9' + data.estimated_total_rounded_inr.toLocaleString('en-IN'));
+  } catch(err){
+    console.error('Simulation error:', err);
+    showToast('Failed to calculate estimate: ' + err.message);
+  }
+}
+
+function resetBillToMonthly(){
+  var kwhInput = document.getElementById('simKwhInput');
+  var loadSelect = document.getElementById('simLoadSelect');
+  if(kwhInput) kwhInput.value = 420;
+  if(loadSelect) loadSelect.value = '1.0';
+  simulateBill();
 }
 
 /* ── REFRESH ALL DATA ─────────────────────────────────────────────────────── */

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import Forecast
 from backend.schemas import MetricsResponse
+from backend.services.billing import calculate_aperc_bill
 
 router = APIRouter()
 
@@ -20,12 +21,16 @@ def get_metrics(db: Session = Depends(get_db)):
     )
     tomorrow_kwh = tomorrow_forecast.predicted_kwh if tomorrow_forecast else 37.2
 
+    month_kwh = 420.0
+    bill_calc = calculate_aperc_bill(consumption_kwh=month_kwh)
+    estimated_bill = float(bill_calc["estimated_total_rounded_inr"])
+
     return MetricsResponse(
         today_kwh=35.4,
-        month_kwh=420.0,
+        month_kwh=month_kwh,
         tomorrow_forecast_kwh=tomorrow_kwh,
-        estimated_bill_inr=None,  # Correction 4: Kept null in Phase 1 pending APERC tariff verification
-        tariff_note="Bill estimation not yet implemented. Configurable AP tariff rules will be added in Phase 4.",
+        estimated_bill_inr=estimated_bill,
+        tariff_note="Estimated using official APERC LT-I(A) Domestic tariff order for FY 2026-27 (effective 01-Apr-2026). Not an official DISCOM bill.",
         forecast_is_real_model=False,
         data_source="simulated",
     )

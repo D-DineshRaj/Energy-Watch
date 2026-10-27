@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.database import init_db
 from backend.routers.alerts import router as alerts_router
+from backend.routers.billing import router as billing_router
 from backend.routers.consumption import router as consumption_router
 from backend.routers.forecast import router as forecast_router
 from backend.routers.metrics import router as metrics_router
@@ -56,6 +57,7 @@ def health_check():
 # 2. API routers registered BEFORE static file mount (Correction 7)
 app.include_router(readings_router, prefix="/api", tags=["Readings"])
 app.include_router(metrics_router, prefix="/api", tags=["Metrics"])
+app.include_router(billing_router, prefix="/api", tags=["Billing"])
 app.include_router(consumption_router, prefix="/api", tags=["Consumption"])
 app.include_router(forecast_router, prefix="/api", tags=["Forecast"])
 app.include_router(alerts_router, prefix="/api", tags=["Alerts"])

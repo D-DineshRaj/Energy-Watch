@@ -86,3 +86,36 @@ class AlertAcknowledgeResponse(BaseModel):
     acknowledged: bool
     acknowledged_at: datetime
     message: str
+
+
+class SlabBreakdownItem(BaseModel):
+    slab_index: int
+    slab_label: str
+    min_kwh: float
+    max_kwh: Optional[float] = None
+    rate_per_kwh: float
+    units_billed: float
+    charge_inr: float
+
+
+class BillEstimateResponse(BaseModel):
+    consumption_kwh: float
+    sanctioned_load_kw: float
+    consumer_category: str
+    state: str
+    regulatory_authority: str
+    tariff_order_ref: str
+    effective_date: str
+    official_source_url: str
+    billing_method: str
+    slabs_breakdown: List[SlabBreakdownItem]
+    energy_charges_inr: float
+    fixed_charges_inr: float
+    electricity_duty_inr: float
+    fpppa_charges_inr: float
+    customer_charges_inr: float
+    estimated_total_inr: float
+    estimated_total_rounded_inr: int
+    is_official_bill: bool = False
+    calculation_assumptions: List[str]
+    limitations: str

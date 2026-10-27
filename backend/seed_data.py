@@ -1,4 +1,5 @@
 """Idempotent seed script to populate SQLite with baseline simulated electricity data."""
+import json
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -9,7 +10,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.database import SessionLocal, init_db
-from backend.models import Alert, Forecast, MeterReading
+from backend.models import Alert, Forecast, MeterReading, TariffConfig
+from backend.services.billing import DEFAULT_APERC_TARIFF
 
 
 def seed_readings(db) -> dict:
@@ -171,10 +173,30 @@ def seed_alerts(db) -> dict:
     return {"status": "seeded", "count": 1, "message": "Inserted 1 baseline alert"}
 
 
+def seed_tariffs(db) -> dict:
+    existing = db.query(TariffConfig).filter(TariffConfig.is_active == True).first()
+    if existing:
+        existing.slab_json = json.dumps(DEFAULT_APERC_TARIFF)
+        existing.effective_from = date(2026, 4, 1)
+        db.commit()
+        return {"status": "skipped", "count": 1, "message": "Active APERC FY 2026-27 tariff config refreshed"}
+
+    config = TariffConfig(
+        state="Andhra Pradesh",
+        category="LT Category-I(A): Domestic",
+        slab_json=json.dumps(DEFAULT_APERC_TARIFF),
+        is_active=True,
+        effective_from=date(2026, 4, 1),
+    )
+    db.add(config)
+    db.commit()
+    return {"status": "seeded", "count": 1, "message": "Inserted 1 APERC verified domestic tariff config"}
+
+
 def run_seed():
     """Execute complete seeding process idempotently."""
     print("=" * 60)
-    print("EnergyWatch — Database Seeder (Phase 1)")
+    print("EnergyWatch — Database Seeder (Phases 1-3)")
     print("=" * 60)
     init_db()
     db = SessionLocal()
@@ -182,12 +204,14 @@ def run_seed():
         r1 = seed_readings(db)
         r2 = seed_forecasts(db)
         r3 = seed_alerts(db)
+        r4 = seed_tariffs(db)
 
         print(f"Readings:  [{r1['status'].upper()}] - {r1['message']}")
         print(f"Forecasts: [{r2['status'].upper()}] - {r2['message']}")
         print(f"Alerts:    [{r3['status'].upper()}] - {r3['message']}")
+        print(f"Tariffs:   [{r4['status'].upper()}] - {r4['message']}")
         print("=" * 60)
-        return {"readings": r1, "forecasts": r2, "alerts": r3}
+        return {"readings": r1, "forecasts": r2, "alerts": r3, "tariffs": r4}
     finally:
         db.close()
 
