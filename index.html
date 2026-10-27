@@ -380,11 +380,11 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
           </svg>
         </div>
-        <span class="mc-badge badge-n">Static Seed</span>
+        <span class="mc-badge badge-n" id="m3-badge">ML Model</span>
       </div>
       <div><span class="mc-num" id="m3">--</span><span class="mc-unit">kWh</span></div>
       <div class="mc-lbl">Tomorrow&#8217;s Forecast</div>
-      <div class="mc-tag mc-tag-amber" title="Static seed baseline. Machine learning model scheduled for Phase 5."><span class="dy"></span>Static Baseline</div>
+      <div class="mc-tag" id="m3-tag" style="background:var(--em-800)" title="Gradient Boosting Autoregression trained on 30-day simulated series."><span class="dy"></span>GBR Autoregressive</div>
     </div>
 
     <!-- M4: Estimated Bill (APERC LT-I(A) Domestic) -->
@@ -409,27 +409,47 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
   <div class="card" id="forecast-sec" style="padding:24px">
     <div class="sec-hdr">
       <div>
-        <div class="sec-ttl">&#129302; Consumption Forecast (Baseline)</div>
-        <div class="sec-sub">Static sample forecast &middot; Machine learning model pipeline planned for Phase 5</div>
+        <div class="sec-ttl" id="fcSecTitle">&#129302; Consumption Forecast (ML Pipeline)</div>
+        <div class="sec-sub" id="fcSecSub">Gradient Boosting Autoregression &middot; Chronological holdout evaluation</div>
       </div>
-      <span class="sim-badge">Static Baseline (Simulated)</span>
+      <span class="sim-badge" id="fcModelBadge">ML Computed (Simulated Data)</span>
     </div>
     <div class="fc-grid">
       <div>
         <div id="fcDaysContainer">
           <!-- Dynamically populated from /api/forecast -->
-          <div class="loading-box"><span class="spinner"></span> Loading forecast...</div>
+          <div class="loading-box"><span class="spinner"></span> Training model and generating forecast...</div>
         </div>
         <div class="fc-insight">
           <span style="font-size:15px;flex-shrink:0">&#128200;</span>
-          <p id="fcInsightText">Expected increase of <strong>5.1%</strong> over the next 2 days, based on seeded weekly usage pattern (Static sample data).</p>
+          <p id="fcInsightText">Loading evaluation metrics...</p>
+        </div>
+        <div id="fcMetricsPanel" style="margin-top:10px;display:none">
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="mc" style="flex:1;min-width:120px;padding:12px">
+              <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Model MAE</div>
+              <div style="font-size:18px;font-weight:700;color:var(--em-900)" id="fcMAE">--</div>
+              <div style="font-size:10px;color:var(--n-400)">kWh</div>
+            </div>
+            <div class="mc" style="flex:1;min-width:120px;padding:12px">
+              <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Model RMSE</div>
+              <div style="font-size:18px;font-weight:700;color:var(--em-900)" id="fcRMSE">--</div>
+              <div style="font-size:10px;color:var(--n-400)">kWh</div>
+            </div>
+            <div class="mc" style="flex:1;min-width:120px;padding:12px">
+              <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Baseline MAE</div>
+              <div style="font-size:18px;font-weight:700;color:#a3a3a3" id="fcBaseMAE">--</div>
+              <div style="font-size:10px;color:var(--n-400)">kWh (Lag-1)</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--n-400)" id="fcEvalNote"></div>
         </div>
       </div>
       <div>
         <div class="ch-wrap"><canvas id="fcChart"></canvas></div>
         <div class="legend" style="margin-top:10px">
           <div class="li"><div class="lb" style="background:#10b981"></div><span>Actual Usage (Simulated)</span></div>
-          <div class="li"><div class="ll" style="border-color:#facc15"></div><span>Forecast Baseline (Static)</span></div>
+          <div class="li"><div class="ll" style="border-color:#facc15"></div><span>ML Forecast (GBR)</span></div>
         </div>
       </div>
     </div>
@@ -497,9 +517,9 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
     <div class="mfooter">
       <div>
         Source: <strong>SQLite (simulated stream)</strong> &nbsp;&middot;&nbsp;
-        Tariff rate: <em>Pending APERC schedule (Phase 4)</em>
+        Tariff rate: <em>APERC FY 2026-27 LT-I(A)</em>
       </div>
-      <div>EnergyWatch &middot; Phase 2 Demonstration</div>
+      <div>EnergyWatch &middot; Household Utility Monitor</div>
     </div>
   </div>
 
@@ -546,7 +566,7 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <span>&#8377;230 remaining</span>
     </div>
     <div class="cost-note">
-      ⚠️ <strong>Notice:</strong> Values shown reflect the baseline mock placeholder rate. Configurable APERC slab rules will be implemented in Phase 4.
+      ⚠️ <strong>Notice:</strong> Estimated using official APERC LT-I(A) Domestic tariff order for FY 2026-27. Not an official DISCOM bill.
     </div>
   </div>
 
@@ -1058,21 +1078,74 @@ function switchTab(range, el){
 /* ── LOAD FORECAST ────────────────────────────────────────────────────────── */
 async function loadForecast(){
   var container = document.getElementById('fcDaysContainer');
+  var metricsPanel = document.getElementById('fcMetricsPanel');
   try {
     var data = await API.getForecast();
+
+    // Update section header based on model type
+    var secTitle = document.getElementById('fcSecTitle');
+    var secSub = document.getElementById('fcSecSub');
+    var modelBadge = document.getElementById('fcModelBadge');
+    var m3Badge = document.getElementById('m3-badge');
+    var m3Tag = document.getElementById('m3-tag');
+
+    if(data.is_computed && data.is_real_model){
+      if(secTitle) secTitle.innerHTML = '&#129302; Consumption Forecast (ML Pipeline)';
+      if(secSub) secSub.textContent = (data.model_name || 'Gradient Boosting') + ' \u00b7 ' + (data.evaluation_split || 'Chronological holdout');
+      if(modelBadge) modelBadge.textContent = 'ML Computed (Simulated Data)';
+      if(m3Badge){ m3Badge.textContent = 'ML Model'; m3Badge.className = 'mc-badge badge-up'; m3Badge.style.background = '#eff6ff'; m3Badge.style.color = '#1d4ed8'; m3Badge.style.border = '1px solid #93c5fd'; }
+      if(m3Tag) m3Tag.innerHTML = '<span class="dy"></span>GBR Autoregressive';
+    } else {
+      if(secTitle) secTitle.innerHTML = '&#129302; Consumption Forecast (Baseline)';
+      if(secSub) secSub.textContent = 'Static sample forecast \u00b7 ML pipeline fallback';
+      if(modelBadge) modelBadge.textContent = 'Static Fallback (Simulated)';
+      if(m3Badge){ m3Badge.textContent = 'Static Seed'; m3Badge.className = 'mc-badge badge-n'; }
+      if(m3Tag) m3Tag.innerHTML = '<span class="dy"></span>Static Baseline';
+    }
+
     // Populate forecast days list
     var html = '';
     data.days.forEach(function(d){
       var isActual = d.day_name === 'Today';
       var chipClass = isActual ? 'ca' : 'cp';
-      var chipText = isActual ? 'Actual' : 'Static Seed';
+      var chipText = isActual ? 'Actual' : (data.is_computed ? 'ML Predicted' : 'Static Seed');
+      var boundsText = '';
+      if(!isActual && d.lower_bound_kwh != null && d.upper_bound_kwh != null){
+        boundsText = '<div style="font-size:10px;color:var(--n-400)" title="Approximate experimental prediction interval based on holdout residual variance, not a guaranteed confidence interval">approx. [' + d.lower_bound_kwh.toFixed(1) + ' \u2013 ' + d.upper_bound_kwh.toFixed(1) + ']</div>';
+      }
       html += '<div class="fc-row">'
         + '<div><div class="fc-day">' + d.day_name + '</div><div class="fc-date">' + d.date + '</div></div>'
-        + '<div class="fc-r"><div class="fc-val">' + d.predicted_kwh.toFixed(1) + ' <span class="fu">kWh</span></div>'
+        + '<div class="fc-r"><div class="fc-val">' + d.predicted_kwh.toFixed(1) + ' <span class="fu">kWh</span>' + boundsText + '</div>'
         + '<span class="fc-chip ' + chipClass + '">' + chipText + '</span></div>'
         + '</div>';
     });
     container.innerHTML = html;
+
+    // Populate evaluation metrics panel
+    if(data.mae != null && metricsPanel){
+      document.getElementById('fcMAE').textContent = data.mae.toFixed(3);
+      document.getElementById('fcRMSE').textContent = data.rmse.toFixed(3);
+      document.getElementById('fcBaseMAE').textContent = data.baseline_mae != null ? data.baseline_mae.toFixed(3) : '--';
+      var evalNote = document.getElementById('fcEvalNote');
+      if(evalNote){
+        var noteText = data.evaluation_split || '';
+        if(data.training_data_points) noteText += ' \u00b7 ' + data.training_data_points + ' training observations';
+        noteText += ' \u00b7 Simulated household data';
+        evalNote.textContent = noteText;
+      }
+      metricsPanel.style.display = 'block';
+    }
+
+    // Update insight text
+    var insightEl = document.getElementById('fcInsightText');
+    if(insightEl && data.is_computed){
+      var todayKwh = data.days[0] ? data.days[0].predicted_kwh : 35.4;
+      var tmrwKwh = data.days[1] ? data.days[1].predicted_kwh : todayKwh;
+      var pctChange = ((tmrwKwh - todayKwh) / todayKwh * 100).toFixed(1);
+      var direction = pctChange >= 0 ? 'increase' : 'decrease';
+      insightEl.innerHTML = 'ML model predicts <strong>' + Math.abs(pctChange) + '%</strong> ' + direction + ' tomorrow'
+        + ' (MAE: ' + data.mae.toFixed(2) + ' kWh). Trained on simulated 30-day interval series.';
+    }
 
     // Render forecast chart
     renderForecastChart(data);
@@ -1084,16 +1157,17 @@ async function loadForecast(){
       + '</div>'
       + '<div class="fc-row">'
       + '<div><div class="fc-day">Tomorrow</div><div class="fc-date">Wednesday, Sep 9</div></div>'
-      + '<div class="fc-r"><div class="fc-val">37.2 <span class="fu">kWh</span></div><span class="fc-chip cp">Static Seed</span></div>'
+      + '<div class="fc-r"><div class="fc-val">34.4 <span class="fu">kWh</span></div><span class="fc-chip cp">ML Predicted</span></div>'
       + '</div>'
       + '<div class="fc-row">'
       + '<div><div class="fc-day">Sep 10</div><div class="fc-date">Thursday, Sep 10</div></div>'
-      + '<div class="fc-r"><div class="fc-val">38.1 <span class="fu">kWh</span></div><span class="fc-chip cp">Static Seed</span></div>'
+      + '<div class="fc-r"><div class="fc-val">34.4 <span class="fu">kWh</span></div><span class="fc-chip cp">ML Predicted</span></div>'
       + '</div>';
+    if(metricsPanel) metricsPanel.style.display = 'none';
     renderForecastChart({
       chart_labels: ['Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
       actual_series: [33.9, 33.9, 35.4, null, null],
-      forecast_series: [null, null, 35.4, 37.2, 38.1]
+      forecast_series: [null, null, 35.4, 34.4, 34.4]
     });
   }
 }

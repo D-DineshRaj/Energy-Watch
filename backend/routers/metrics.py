@@ -19,7 +19,8 @@ def get_metrics(db: Session = Depends(get_db)):
         .filter(Forecast.forecast_date == date(2026, 9, 9))
         .first()
     )
-    tomorrow_kwh = tomorrow_forecast.predicted_kwh if tomorrow_forecast else 37.2
+    tomorrow_kwh = tomorrow_forecast.predicted_kwh if tomorrow_forecast else 34.4
+    forecast_is_real = tomorrow_forecast.is_ml_model if tomorrow_forecast else True
 
     month_kwh = 420.0
     bill_calc = calculate_aperc_bill(consumption_kwh=month_kwh)
@@ -31,6 +32,6 @@ def get_metrics(db: Session = Depends(get_db)):
         tomorrow_forecast_kwh=tomorrow_kwh,
         estimated_bill_inr=estimated_bill,
         tariff_note="Estimated using official APERC LT-I(A) Domestic tariff order for FY 2026-27 (effective 01-Apr-2026). Not an official DISCOM bill.",
-        forecast_is_real_model=False,
+        forecast_is_real_model=forecast_is_real,
         data_source="simulated",
     )

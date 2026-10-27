@@ -4,17 +4,17 @@ EnergyWatch is a household electricity monitoring and forecasting application de
 
 ---
 
-## 📌 Project Status: Working Full-Stack Prototype (~75% Milestone — Phase 3)
+## 📌 Project Status: Working Full-Stack Prototype (~85% Milestone — ML Forecasting)
 
 | Layer | Status | Implementation Details |
 |---|---|---|
-| **Frontend UI** | ✅ Fully Functional | Connected to live FastAPI endpoints; Chart.js graphs, filter chips, dynamic alerts, live ticking clock |
+| **Frontend UI** | ✅ Fully Functional | Connected to live FastAPI endpoints; Chart.js graphs, filter chips, dynamic alerts, live ticking clock, ML forecast display |
 | **Backend API** | ✅ Operational | FastAPI application with CORS and lifespan database initialization |
 | **Database** | ✅ Operational | SQLite (`data/energywatch.db`) via SQLAlchemy 2.1.4 |
 | **Data Seeder** | ✅ Operational | Idempotent baseline seeder for simulated readings, alerts, and APERC tariff configurations |
 | **Alert Management** | ✅ Interactive | Full acknowledgement & reset cycle persisted in SQLite |
 | **Bill Calculation** | ✅ Verified (Phase 3) | Official APERC LT-I(A) Domestic telescopic tariff with slab breakdown, fixed charges, and duty |
-| **ML Forecasts** | ⚠️ Static Simulation | Model labelled `static_seed` (Machine learning pipeline planned for Phase 5) |
+| **ML Forecasts** | ✅ Operational (Phase 4) | Gradient Boosting Regressor (shallow trees) with chronological 80/20 holdout evaluation & baseline benchmarking |
 | **Meter Hardware** | ⚠️ Simulated Readings | Readings represent simulated household patterns for validation prior to smart meter integration |
 
 ---
@@ -73,15 +73,16 @@ Grand Total Estimated Bill:                   ₹2,778.45  (Rounded: ₹2,778)
 
 ```
 EnergyWatch/
-├── index.html                  # Responsive dashboard with live clock and bill breakdown modal
-├── requirements.txt            # Pinned dependencies for Python 3.14.3
+├── index.html                  # Responsive dashboard with live clock, bill modal, and ML forecast card
+├── requirements.txt            # Pinned dependencies including scikit-learn and numpy
 ├── .gitignore                  # Exclusion rules for venv, DB, secrets, and caches
 ├── README.md                   # Project documentation and developer guide
 ├── data/
 │   ├── .gitkeep                # Git tracking stub for database folder
 │   └── energywatch.db          # SQLite database (auto-generated, untracked)
 ├── tests/
-│   └── test_bill_calculation.py# Unit & API test suite for APERC bill calculation
+│   ├── test_bill_calculation.py# Unit & API test suite for APERC bill calculation
+│   └── test_forecasting.py     # Unit & API test suite for ML forecasting pipeline
 └── backend/
     ├── __init__.py             # Backend package marker
     ├── main.py                 # FastAPI app, middleware, and route mounting
@@ -91,14 +92,15 @@ EnergyWatch/
     ├── seed_data.py            # Idempotent database population script
     ├── services/
     │   ├── __init__.py         # Services package marker
-    │   └── billing.py          # Pure Decimal APERC telescopic bill calculation engine
+    │   ├── billing.py          # Pure Decimal APERC telescopic bill calculation engine
+    │   └── forecasting.py      # Autoregressive ML forecasting pipeline (scikit-learn)
     └── routers/
         ├── __init__.py         # Routers package marker
         ├── readings.py         # /api/readings (today, yesterday, week)
         ├── metrics.py          # /api/metrics (usage summaries, estimated bill)
         ├── billing.py          # /api/bill-estimate (itemized APERC bill calculation)
         ├── consumption.py      # /api/consumption (7d, 30d, 3m trends)
-        ├── forecast.py         # /api/forecast (static sample forecasts)
+        ├── forecast.py         # /api/forecast (ML predictions + evaluation metrics)
         └── alerts.py           # /api/alerts (retrieval, acknowledge, & reset)
 ```
 
@@ -139,7 +141,7 @@ Open **PowerShell** in the project directory (`C:\Projects\EnergyWatrch(3-1)`):
 | `GET` | `/api/consumption?range=7d` | Consumption trend data (7-day series + forecast overlay) |
 | `GET` | `/api/consumption?range=30d` | 30-day historical consumption series |
 | `GET` | `/api/consumption?range=3m` | 3-month aggregated consumption series |
-| `GET` | `/api/forecast` | Static sample forecasts labelled as simulation |
+| `GET` | `/api/forecast` | Dynamic ML forecast (Gradient Boosting) with holdout MAE/RMSE and baseline comparisons |
 | `GET` | `/api/alerts` | List unacknowledged anomaly alerts |
 | `POST` | `/api/alerts/{id}/acknowledge` | Mark an alert as acknowledged in SQLite |
 | `POST` | `/api/alerts/{id}/reset` | Re-arm an alert for demonstration testing |
@@ -234,30 +236,89 @@ Open **PowerShell** in the project directory (`C:\Projects\EnergyWatrch(3-1)`):
 
 ---
 
+---
+
+## 🤖 Machine Learning Forecasting Pipeline
+
+EnergyWatch implements a disciplined, maintainable time-series forecasting pipeline using **Gradient Boosting Autoregression** with scikit-learn.
+
+### 1. Model Choice & Rationale
+* **Algorithm:** `GradientBoostingRegressor` (shallow trees: `max_depth=2`, `n_estimators=25`, `learning_rate=0.08`, `subsample=0.85`, `random_state=42`).
+* **Why Gradient Boosting over ARIMA/Deep Learning:**
+  * For compact interval datasets (30 daily simulated observations), complex neural networks or deep architectures overfit instantaneously.
+  * Classical ARIMA requires strict stationarity differencing and can exhibit numerical instability on small sample sizes.
+  * Constrained shallow-depth Gradient Boosting provides robust, monotonic regularization, natively ingests tabular autoregressive lags and calendar indicators, and executes deterministically with zero runtime latency.
+
+### 2. Feature Formulation
+For each observation at day $t$:
+* **Lag 1 ($y_{t-1}$):** Consumption of the previous day.
+* **Lag 2 ($y_{t-2}$):** Consumption from two days prior.
+* **Rolling Mean 2:** $\frac{y_{t-1} + y_{t-2}}{2}$, smoothing high-frequency noise.
+* **Day-of-Week:** Calendar indicator ($0=\text{Monday}, \dots, 6=\text{Sunday}$) capturing weekly cycle variations.
+
+### 3. Chronological Train/Test Split (Zero Data Leakage)
+To strictly avoid lookahead bias and data leakage:
+* **Train Split (80%):** 22 observations chronologically from **2026-08-12 to 2026-09-02**.
+* **Holdout Test Split (20%):** 6 observations chronologically from **2026-09-03 to 2026-09-08**.
+* **Condition:** $\max(\text{train\_dates}) < \min(\text{test\_dates})$. No future or shuffle leakage.
+
+### 4. Objective Evaluation & Baseline Benchmarking
+Predictions on the holdout test set are benchmarked against a **Naive Persistence Baseline** ($y_t = y_{t-1}$):
+
+| Model | MAE (Mean Absolute Error) | RMSE (Root Mean Squared Error) | Evaluation Split |
+|---|---|---|---|
+| **Gradient Boosting (Autoreg)** | **2.480 kWh** | **2.686 kWh** | Chronological 80/20 Holdout (6 test days) |
+| **Naive Persistence Baseline (Lag-1)** | **1.133 kWh** | **1.583 kWh** | Chronological 80/20 Holdout (6 test days) |
+
+> [!NOTE]
+> **Data Science Insight:** The naive persistence baseline outperforms the machine learning model on this compact simulated holdout window (MAE 1.13 kWh vs 2.48 kWh). This confirms that with only 22 training observations on a relatively smooth synthetic series, complex models tend to revert toward the training mean and cannot reliably learn subtle day-of-week patterns without higher sample volume and exogenous weather inputs.
+
+### 5. Multi-Step Recursive Forecasting
+* Generates 3-day recursive forward projections (Tomorrow, Day 2, Day 3).
+* Dynamically estimates prediction intervals using residual standard deviation:
+  $$\text{Interval} = \hat{y} \pm 1.645 \times \sigma_{\text{residuals}}$$
+
+---
+
 ## 🧪 Running Automated Tests
 
-Run the full Phase 3 test suite via Python's standard `unittest` framework:
+Run the complete 61-test suite (both APERC bill calculation and ML forecasting pipeline) using Python's standard `unittest` runner:
 
 ```powershell
-.venv\Scripts\python.exe -m unittest tests/test_bill_calculation.py
+.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-Tests verify:
-* Zero consumption baseline (fixed charge only)
-* Normal consumption scenarios (50 kWh, 100 kWh, 420 kWh)
-* All 5 exact slab boundary thresholds (30, 75, 125, 225, 400 kWh)
-* Boundary deltas immediately below (–0.1) and above (+0.1) every slab boundary
-* Input validation for negative consumption and non-positive loads
-* High consumption unbounded tier calculations (1000 kWh)
-* Monetary half-up rounding precision and arithmetic integrity
-* FastAPI endpoint contracts for `/api/bill-estimate` and `/api/metrics`
-* 422 HTTP validation error responses
+Or run individual test suites:
+
+```powershell
+# Phase 3 APERC Billing calculation tests (18 tests)
+.venv\Scripts\python.exe -m unittest tests/test_bill_calculation.py -v
+
+# Phase 4 ML Forecasting pipeline & API tests (43 tests)
+.venv\Scripts\python.exe -m unittest tests/test_forecasting.py -v
+```
+
+### Test Suite Coverage (61 Passed Checks):
+1. **APERC Billing Tests (18 tests):**
+   * Zero consumption baseline (fixed charge only)
+   * Telescopic slab tiers (30, 75, 125, 225, 400 kWh) and delta boundary checks ($\pm 0.1$)
+   * Monetary half-up rounding precision
+   * High-tier unbounded calculations (1,000 kWh)
+   * Pydantic schema validation and 422 HTTP error contracts
+2. **ML Forecasting Tests (43 tests):**
+   * Input validation: insufficient data (< 14 samples), empty series, null values, negative consumption, NaN/inf, non-chronological dates, mismatched lengths
+   * Autoregressive feature extraction: matrix shapes, lag alignment, rolling mean, weekday encoding
+   * Chronological splitting: strict train/test date separation (zero leakage), partition ratios, sample minimums
+   * Evaluation metrics: MAE, RMSE calculations against known synthetic targets
+   * Full pipeline: schema keys, 3-day projection horizon, empirical prediction interval ordering
+   * API endpoints: `/api/forecast` HTTP 200 contract, ML metadata fields, chart alignment
+   * Regression tests: `/health`, `/api/metrics`, `/api/consumption?range=7d`, `/api/consumption?range=30d`, `/api/readings?filter=today`, `/api/readings?filter=week`, `/api/alerts`, `/api/bill-estimate`
 
 ---
 
 ## ⚠️ Data Disclaimer & Roadmap
 
-* **Simulated Meter Data:** Readings represent simulated household patterns (Meter `EW-2847-HH`) used to validate full-stack data flow and API contracts.
-* **Static Forecasts:** Forecast values represent a static seed baseline. Real machine learning models (e.g., ARIMA / Random Forest / Gradient Boosting) are scheduled for **Phase 5**.
+* **Simulated Meter Data:** Readings represent simulated household patterns (Meter `EW-2847-HH`) used to validate full-stack data flow, API contracts, and user interactions.
+* **Experimental ML Forecasting:** The machine learning pipeline is operational using simulated historical consumption. Because synthetic data lacks weather, temperature, occupancy, and solar factors, reported evaluation metrics reflect simulated behavior and do not claim real-world meter accuracy.
 * **Informational Bill Estimates:** Bill calculation uses verified APERC domestic tariff rules, but is intended solely for consumption monitoring and financial budgeting. Official utility bills are issued exclusively by state distribution companies (APSPDCL, APEPDCL, APCPDCL).
-* **Hardware Integration:** Real smart meter hardware integration (Modbus / MQTT / DLMS-COSEM) is scheduled for future deployment.
+* **Hardware Integration:** Real smart meter hardware integration (Modbus / MQTT / DLMS-COSEM) is scheduled for future physical deployment.

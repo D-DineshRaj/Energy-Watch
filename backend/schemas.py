@@ -31,7 +31,7 @@ class MetricsResponse(BaseModel):
     month_kwh: float
     tomorrow_forecast_kwh: Optional[float] = None
     estimated_bill_inr: Optional[float] = None  # Always None in Phase 1 per Correction 4
-    tariff_note: str = "Bill estimation not yet implemented. Configurable AP tariff rules will be added in Phase 4."
+    tariff_note: str = "Estimated using official APERC LT-I(A) Domestic tariff order for FY 2026-27. Not an official DISCOM bill."
     forecast_is_real_model: bool = False
     data_source: str = "simulated"
 
@@ -57,6 +57,18 @@ class ForecastResponse(BaseModel):
     chart_labels: List[str]
     actual_series: List[Optional[float]]
     forecast_series: List[Optional[float]]
+    model_name: Optional[str] = None
+    training_data_points: Optional[int] = None
+    train_samples: Optional[int] = None
+    test_samples: Optional[int] = None
+    evaluation_split: Optional[str] = None
+    mae: Optional[float] = None
+    rmse: Optional[float] = None
+    baseline_model: Optional[str] = None
+    baseline_mae: Optional[float] = None
+    baseline_rmse: Optional[float] = None
+    data_source: Optional[str] = "simulated"
+    limitations: Optional[str] = None
 
 
 class ConsumptionResponse(BaseModel):
