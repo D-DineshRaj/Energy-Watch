@@ -26,6 +26,17 @@ class MeterReadingOut(BaseModel):
     created_at: Optional[datetime] = None
 
 
+class CSVImportResponse(BaseModel):
+    status: str
+    filename: str
+    total_rows: int
+    imported_count: int
+    skipped_duplicates_count: int
+    rejected_invalid_count: int
+    message: str
+    details: List[str] = []
+
+
 class MetricsResponse(BaseModel):
     today_kwh: float
     month_kwh: float

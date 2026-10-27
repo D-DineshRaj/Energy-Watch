@@ -3,6 +3,7 @@ fastapi==0.135.2
 uvicorn[standard]==0.42.0
 sqlalchemy==2.1.4
 httpx==0.28.1
+python-multipart>=0.0.20
 
 # ── Forecasting / ML Dependencies (Python 3.14 compatible) ─────────────────
 scikit-learn>=1.5.2

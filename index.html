@@ -492,11 +492,18 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
         <div class="sec-ttl">&#9889; Recent Meter Readings</div>
         <div class="sec-sub">Live query from SQLite table <code>meter_readings</code> &middot; Meter ID: EW-2847-HH</div>
       </div>
+      <div>
+        <button class="fc2" onclick="openCsvModal()" style="font-size:12px;padding:6px 12px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import CSV
+        </button>
+      </div>
     </div>
     <div class="filter-chips">
       <button class="fc2 active" onclick="setFilter('today',this)">Today</button>
       <button class="fc2" onclick="setFilter('yesterday',this)">Yesterday</button>
       <button class="fc2" onclick="setFilter('week',this)">This Week</button>
+      <button class="fc2" onclick="setFilter('all',this)">All Recent</button>
     </div>
     <div style="overflow-x:auto">
       <table>
@@ -730,6 +737,47 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
   </div>
 </div>
 
+<!-- CSV IMPORT MODAL -->
+<div class="bill-modal-overlay" id="csvModalOverlay" onclick="handleCsvModalOverlayClick(event)">
+  <div class="bill-modal" role="dialog" aria-modal="true" aria-labelledby="csvModalTitle" style="max-width:540px">
+    <div class="bill-modal-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="mc-icon ic-g" style="width:34px;height:34px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div>
+          <h2 id="csvModalTitle" style="font-size:16px;font-weight:700;color:var(--em-950);margin:0">Import Meter Readings (CSV)</h2>
+          <div style="font-size:11px;color:var(--n-400);margin-top:2px">Upload interval consumption readings into SQLite database</div>
+        </div>
+      </div>
+      <button class="bill-modal-close" onclick="closeCsvModal()" title="Close dialog (Esc)">&times;</button>
+    </div>
+
+    <div class="bill-modal-body">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;font-size:12px;color:#166534;line-height:1.5">
+        <strong>Required CSV Schema:</strong> <code>timestamp</code>, <code>consumption_kwh</code>, <code>meter_id</code>
+        <br><span style="font-size:11px;color:#15803d">Duplicate readings and negative values are automatically validated and rejected.</span>
+      </div>
+
+      <div style="border:2px dashed var(--n-200);border-radius:10px;padding:22px;text-align:center;background:#fafafa;cursor:pointer" onclick="document.getElementById('csvFileInput').click()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="margin-bottom:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        <div style="font-size:13px;font-weight:600;color:var(--em-900)" id="csvSelectedFileName">Click to select CSV file</div>
+        <div style="font-size:11px;color:var(--n-400);margin-top:4px">Accepts .csv files formatted with required headers</div>
+        <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display:none" onchange="handleCsvFileSelected(event)">
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;justify-content:space-between">
+        <button class="fc2" onclick="loadSampleCsvFile()" style="font-size:11px;cursor:pointer">Use Sample (data/meter_readings.csv)</button>
+        <button class="fc2" id="btnSubmitCsv" onclick="submitCsvUpload()" style="font-size:12px;padding:7px 16px;background:var(--em-600);color:#fff;font-weight:600;cursor:pointer;border:none" disabled>
+          Import Readings
+        </button>
+      </div>
+
+      <div id="csvResultBox" style="display:none;border-radius:8px;padding:12px;font-size:12px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toastMsg">Notification message</div>
 
@@ -878,6 +926,17 @@ var API = {
     var res = await fetch('/api/bill-estimate' + query);
     if(!res.ok) throw new Error('Bill estimate API error ' + res.status);
     return res.json();
+  },
+  uploadCsv: async function(fileOrBlob, filename){
+    var fd = new FormData();
+    fd.append('file', fileOrBlob, filename || 'meter_readings.csv');
+    var res = await fetch('/api/readings/upload-csv', {
+      method: 'POST',
+      body: fd
+    });
+    var data = await res.json();
+    if(!res.ok) throw new Error(data.detail || ('Upload error ' + res.status));
+    return data;
   }
 };
 
@@ -1261,17 +1320,17 @@ async function loadReadings(filter){
 
       // Format time label
       var timeLabel = '';
+      var dObj = new Date(r.timestamp);
       if(r.reading_type === 'daily'){
-        var dObj = new Date(r.timestamp);
         timeLabel = dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' (Daily Total)';
       } else {
-        var dObj = new Date(r.timestamp);
         var hrs = dObj.getHours();
         var mins = dObj.getMinutes();
         var ampm = hrs >= 12 ? 'PM' : 'AM';
         var h12 = hrs % 12 || 12;
         var mStr = mins < 10 ? '0' + mins : mins;
-        timeLabel = (h12 < 10 ? '0' + h12 : h12) + ':' + mStr + ' ' + ampm;
+        var datePrefix = (filter === 'all') ? (dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ') : '';
+        timeLabel = datePrefix + (h12 < 10 ? '0' + h12 : h12) + ':' + mStr + ' ' + ampm;
       }
 
       var voltText = r.voltage_v ? r.voltage_v.toFixed(1) + ' V' : '230.0 V';
@@ -1411,7 +1470,10 @@ function handleBillModalOverlayClick(e){
 }
 
 document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape') closeBillModal();
+  if(e.key === 'Escape'){
+    closeBillModal();
+    closeCsvModal();
+  }
 });
 
 function renderBillModalData(data){
@@ -1487,6 +1549,111 @@ function resetBillToMonthly(){
   if(kwhInput) kwhInput.value = 420;
   if(loadSelect) loadSelect.value = '1.0';
   simulateBill();
+}
+
+/* ── CSV IMPORT MODAL ─────────────────────────────────────────────────────── */
+var selectedCsvFile = null;
+
+function openCsvModal(){
+  var overlay = document.getElementById('csvModalOverlay');
+  if(overlay) overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  resetCsvModal();
+}
+
+function closeCsvModal(){
+  var overlay = document.getElementById('csvModalOverlay');
+  if(overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleCsvModalOverlayClick(e){
+  if(e.target && e.target.id === 'csvModalOverlay'){
+    closeCsvModal();
+  }
+}
+
+function resetCsvModal(){
+  selectedCsvFile = null;
+  var input = document.getElementById('csvFileInput');
+  if(input) input.value = '';
+  var fn = document.getElementById('csvSelectedFileName');
+  if(fn) fn.textContent = 'Click to select CSV file';
+  var btn = document.getElementById('btnSubmitCsv');
+  if(btn) btn.disabled = true;
+  var resBox = document.getElementById('csvResultBox');
+  if(resBox) resBox.style.display = 'none';
+}
+
+function handleCsvFileSelected(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  selectedCsvFile = file;
+  var fn = document.getElementById('csvSelectedFileName');
+  if(fn) fn.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+  var btn = document.getElementById('btnSubmitCsv');
+  if(btn) btn.disabled = false;
+  var resBox = document.getElementById('csvResultBox');
+  if(resBox) resBox.style.display = 'none';
+}
+
+async function loadSampleCsvFile(){
+  try {
+    var res = await fetch('/data/meter_readings.csv');
+    if(!res.ok) throw new Error('Could not load sample CSV');
+    var blob = await res.blob();
+    selectedCsvFile = new File([blob], 'meter_readings.csv', { type: 'text/csv' });
+    var fn = document.getElementById('csvSelectedFileName');
+    if(fn) fn.textContent = 'data/meter_readings.csv (Sample)';
+    var btn = document.getElementById('btnSubmitCsv');
+    if(btn) btn.disabled = false;
+    var resBox = document.getElementById('csvResultBox');
+    if(resBox) resBox.style.display = 'none';
+    showToast('Loaded data/meter_readings.csv sample template');
+  } catch(err){
+    console.warn('Sample load error:', err);
+    showToast('Could not auto-load sample CSV: ' + err.message);
+  }
+}
+
+async function submitCsvUpload(){
+  if(!selectedCsvFile) return;
+  var btn = document.getElementById('btnSubmitCsv');
+  var resBox = document.getElementById('csvResultBox');
+  btn.disabled = true;
+  btn.textContent = 'Importing...';
+  try {
+    var result = await API.uploadCsv(selectedCsvFile, selectedCsvFile.name);
+    resBox.style.display = 'block';
+    if(result.imported_count > 0){
+      resBox.style.background = '#f0fdf4';
+      resBox.style.border = '1px solid #bbf7d0';
+      resBox.style.color = '#166534';
+      resBox.innerHTML = '<strong>' + (result.status === 'success' ? 'Import Successful!' : 'Partial Import') + '</strong> '
+        + result.message
+        + '<div style="margin-top:6px;font-size:11px">'
+        + 'Imported: <strong>' + result.imported_count + '</strong> &middot; '
+        + 'Duplicates Skipped: <strong>' + result.skipped_duplicates_count + '</strong> &middot; '
+        + 'Invalid Rejected: <strong>' + result.rejected_invalid_count + '</strong>'
+        + '</div>';
+    } else {
+      resBox.style.background = '#fffbeb';
+      resBox.style.border = '1px solid #fde68a';
+      resBox.style.color = '#92400e';
+      resBox.innerHTML = '<strong>Notice:</strong> ' + result.message;
+    }
+    showToast('Imported ' + result.imported_count + ' readings from ' + (result.filename || 'CSV'));
+    loadReadings(currentFilter);
+  } catch(err){
+    resBox.style.display = 'block';
+    resBox.style.background = '#fef2f2';
+    resBox.style.border = '1px solid #fecaca';
+    resBox.style.color = '#991b1b';
+    resBox.innerHTML = '<strong>Import Error:</strong> ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Import Readings';
+  }
 }
 
 /* ── REFRESH ALL DATA ─────────────────────────────────────────────────────── */
