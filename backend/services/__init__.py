@@ -13,10 +13,19 @@ from backend.services.forecasting import (
     compute_evaluation_metrics,
 )
 
+from backend.services.reports import (
+    generate_consumption_summary,
+    generate_readings_csv,
+    parse_date_param,
+)
+
 __all__ = [
     "calculate_aperc_bill",
     "compute_baseline_stats",
     "evaluate_reading_for_anomaly",
+    "generate_consumption_summary",
+    "generate_readings_csv",
+    "parse_date_param",
     "parse_and_validate_csv",
     "scan_and_generate_alerts",
     "train_and_evaluate_forecasting_pipeline",

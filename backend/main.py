@@ -12,6 +12,7 @@ from backend.routers.consumption import router as consumption_router
 from backend.routers.forecast import router as forecast_router
 from backend.routers.metrics import router as metrics_router
 from backend.routers.readings import router as readings_router
+from backend.routers.reports import router as reports_router
 from backend.schemas import HealthResponse
 
 _PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -61,6 +62,7 @@ app.include_router(billing_router, prefix="/api", tags=["Billing"])
 app.include_router(consumption_router, prefix="/api", tags=["Consumption"])
 app.include_router(forecast_router, prefix="/api", tags=["Forecast"])
 app.include_router(alerts_router, prefix="/api", tags=["Alerts"])
+app.include_router(reports_router, prefix="/api", tags=["Reports"])
 
 # 3. Static files mounted LAST (Correction 1 & 7)
 # Serves index.html from project root at http://localhost:8000/

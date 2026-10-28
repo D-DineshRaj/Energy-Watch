@@ -174,3 +174,62 @@ class BillEstimateResponse(BaseModel):
     is_official_bill: bool = False
     calculation_assumptions: List[str]
     limitations: str
+
+
+class DailyReportItem(BaseModel):
+    date: str
+    consumption_kwh: float
+    reading_count: int
+    peak_hour: Optional[str] = None
+    peak_kwh: Optional[float] = None
+    reading_type: str = "hourly"
+
+
+class MonthlyReportItem(BaseModel):
+    month: str
+    consumption_kwh: float
+    daily_avg_kwh: float
+    days_count: int
+    estimated_bill_inr: float
+
+
+class ReportSummaryResponse(BaseModel):
+    status: str
+    meter_id: str
+    start_date: str
+    end_date: str
+    total_consumption_kwh: float
+    daily_avg_kwh: float
+    days_count: int
+    readings_count: int
+    peak_day: Optional[str] = None
+    peak_day_kwh: Optional[float] = None
+    peak_hour: Optional[str] = None
+    peak_hour_kwh: Optional[float] = None
+    sanctioned_load_kw: float = 1.0
+    estimated_bill_inr: float
+    estimated_bill_rounded_inr: int
+    bill_breakdown: BillEstimateResponse
+    daily_breakdown: List[DailyReportItem] = []
+    monthly_breakdown: List[MonthlyReportItem] = []
+    data_source: str = "simulated"
+    tariff_reference: str
+    message: str
+
+
+class StatementResponse(BaseModel):
+    statement_id: str
+    statement_date: str
+    consumer_name: str = "Household Consumer"
+    meter_id: str
+    period_start: str
+    period_end: str
+    days_in_period: int
+    total_kwh: float
+    daily_avg_kwh: float
+    peak_day: Optional[str] = None
+    peak_day_kwh: Optional[float] = None
+    bill_estimate: BillEstimateResponse
+    daily_breakdown: List[DailyReportItem] = []
+    is_official: bool = False
+    disclaimer: str

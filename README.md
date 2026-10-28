@@ -87,7 +87,8 @@ EnergyWatch/
 │   ├── test_bill_calculation.py# Unit & API test suite for APERC bill calculation (18 tests)
 │   ├── test_forecasting.py     # Unit & API test suite for ML forecasting pipeline (43 tests)
 │   ├── test_csv_import.py      # Unit & API test suite for CSV import & deduplication (18 tests)
-│   └── test_anomaly_detection.py# Unit & API test suite for automated anomaly detection (13 tests)
+│   ├── test_anomaly_detection.py# Unit & API test suite for automated anomaly detection (16 tests)
+│   └── test_reports.py         # Unit & API test suite for reports, export & statement (13 tests)
 └── backend/
     ├── __init__.py             # Backend package marker
     ├── main.py                 # FastAPI app, middleware, and route mounting
@@ -100,7 +101,8 @@ EnergyWatch/
     │   ├── billing.py          # Pure Decimal APERC telescopic bill calculation engine
     │   ├── forecasting.py      # Autoregressive ML forecasting pipeline (scikit-learn)
     │   ├── csv_import.py       # CSV validation, deduplication, and database import engine
-    │   └── anomaly_detection.py# Statistical Z-score anomaly detection & alert generation engine
+    │   ├── anomaly_detection.py# Statistical Z-score anomaly detection & alert generation engine
+    │   └── reports.py          # Daily/monthly aggregations, APERC bill integration, CSV export
     └── routers/
         ├── __init__.py         # Routers package marker
         ├── readings.py         # /api/readings (filters: today, yesterday, week, all; upload-csv)
@@ -108,7 +110,8 @@ EnergyWatch/
         ├── billing.py          # /api/bill-estimate (itemized APERC bill calculation)
         ├── consumption.py      # /api/consumption (7d, 30d, 3m trends)
         ├── forecast.py         # /api/forecast (ML predictions + evaluation metrics)
-        └── alerts.py           # /api/alerts (retrieval, acknowledge, reset, detect-anomalies)
+        ├── alerts.py           # /api/alerts (retrieval, acknowledge, reset, detect-anomalies)
+        └── reports.py          # /api/reports (summary, export-csv, statement)
 ```
 
 ---
@@ -155,6 +158,9 @@ Open **PowerShell** in the project directory (`C:\Projects\EnergyWatrch(3-1)`):
 | `POST` | `/api/alerts/{id}/acknowledge` | Mark an alert as acknowledged in SQLite |
 | `POST` | `/api/alerts/{id}/reset` | Re-arm an alert for demonstration testing |
 | `POST` | `/api/alerts/detect-anomalies` | Run statistical Z-score anomaly scan across meter readings and generate persistent alerts |
+| `GET` | `/api/reports/summary` | Generate daily/monthly consumption summaries and APERC bill estimates |
+| `GET` | `/api/reports/export-csv` | Download filtered meter readings as an RFC-4180 CSV file |
+| `GET` | `/api/reports/statement` | Formal energy statement data with APERC telescopic breakdown for printing/PDF |
 
 
 ### Sample Response: `GET /api/bill-estimate`
@@ -369,6 +375,34 @@ $$Z = \frac{x - \mu}{\sigma}$$
 
 ---
 
+## 📊 Energy Reports & Data Export
+
+EnergyWatch provides comprehensive consumption reporting, raw interval data export, and print-ready utility statements calculated directly from stored smart meter readings in SQLite.
+
+### 1. Consumption Aggregations
+* **Date Range Filtering:** Query intervals flexibly by `start_date` and `end_date` (ISO `YYYY-MM-DD` or datetime).
+* **Multi-Meter Isolation:** Summaries filter strictly by `meter_id` (`EW-2847-HH`), ensuring readings from different meters are never conflated.
+* **Daily Breakdown:** Aggregates hourly readings for each calendar day, identifying daily total consumption, reading count, peak hour, and peak load in kWh.
+* **Monthly Summary:** Groups multi-month intervals into calendar months, tracking monthly usage, daily averages, and month-level APERC bill estimates.
+
+### 2. Official APERC Tariff Integration
+* Reuses `calculate_aperc_bill()` from `backend.services.billing` without duplicating tariff or calculation logic.
+* Computes itemized energy charges across all 6 APERC FY 2026-27 telescopic slabs, fixed monthly charges (₹10/kW), and state electricity duty (6 paise/unit).
+* Clearly marks all calculated amounts as informational estimates.
+
+### 3. CSV Data Export
+* **Endpoint:** `GET /api/reports/export-csv?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&meter_id=EW-2847-HH`
+* **Format:** RFC-4180 compliant CSV stream with headers `timestamp`, `consumption_kwh`, `meter_id`, `voltage_v`, `current_a`, `power_factor`, `status`, `source`, `reading_type`.
+* **Download Headers:** Emits `Content-Disposition: attachment; filename="energywatch_readings_<meter>_<start>_<end>.csv"`.
+
+### 4. Printable Energy Statement (Save as PDF)
+* **Print-Ready Layout:** Accessible via **Print Statement** button in the dashboard or `GET /api/reports/statement`.
+* **Zero External Dependencies:** Built with pure HTML and responsive `@media print` CSS. Requires no heavy PDF rendering binaries.
+* **Browser Integration:** Formats cleanly for the browser's native **Print / Save as PDF** dialog (Ctrl+P / Cmd+P), automatically stripping navigation bars, action buttons, and sidebars.
+* **Statutory Compliance:** Prominently displays reference ID, meter metadata, billing dates, itemized slab breakdown, and official APERC disclaimers.
+
+---
+
 ## 🤖 Machine Learning Forecasting Pipeline
 
 EnergyWatch implements a disciplined, maintainable time-series forecasting pipeline using **Gradient Boosting Autoregression** with scikit-learn.
@@ -413,7 +447,7 @@ Predictions on the holdout test set are benchmarked against a **Naive Persistenc
 
 ## 🧪 Running Automated Tests
 
-Run the complete 92-test suite (APERC bill calculation, ML forecasting pipeline, CSV import engine, and anomaly detection) using Python's standard `unittest` runner:
+Run the complete 108-test suite (APERC bill calculation, ML forecasting pipeline, CSV import engine, anomaly detection, and energy reports) using Python's standard `unittest` runner:
 
 ```powershell
 .venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
@@ -431,11 +465,14 @@ Or run individual test suites:
 # CSV Import & Deduplication tests (18 tests)
 .venv\Scripts\python.exe -m unittest tests/test_csv_import.py -v
 
-# Automated Anomaly Detection & Alert tests (13 tests)
+# Automated Anomaly Detection & Alert tests (16 tests)
 .venv\Scripts\python.exe -m unittest tests/test_anomaly_detection.py -v
+
+# Energy Reports & Data Export tests (13 tests)
+.venv\Scripts\python.exe -m unittest tests/test_reports.py -v
 ```
 
-### Test Suite Coverage (92 Passed Checks):
+### Test Suite Coverage (108 Passed Checks):
 1. **APERC Billing Tests (18 tests):**
    * Zero consumption baseline (fixed charge only)
    * Telescopic slab tiers (30, 75, 125, 225, 400 kWh) and delta boundary checks ($\pm 0.1$)
@@ -479,6 +516,17 @@ Or run individual test suites:
    * CSV upload integration (importing anomaly automatically triggers alert)
    * CSV repeated upload deduplication (re-uploading identical batch creates zero duplicate alerts)
    * API endpoint contracts (`POST /api/alerts/detect-anomalies`, `GET /api/alerts`, acknowledge/reset lifecycle)
+5. **Energy Reports & Data Export Tests (13 tests):**
+   * Consumption totals and daily average calculation across date boundaries
+   * Strict date-range filtering (excluding readings outside start and end dates)
+   * Multi-meter baseline and data isolation in reporting
+   * Zero double-counting verification between hourly readings and daily summary records
+   * Invalid date range validation (start date > end date raises HTTP 400)
+   * Empty dataset handling (0 readings returns structured summary with zero values)
+   * Official APERC billing service integration and slab charge parity
+   * RFC-4180 CSV export formatting, custom headers, and row count tracking
+   * Printable statement endpoint parity with report summary metrics
+   * REST API contracts (`GET /api/reports/summary`, `GET /api/reports/export-csv`, `GET /api/reports/statement`)
 
 ---
 
