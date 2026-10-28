@@ -33,8 +33,11 @@ class CSVImportResponse(BaseModel):
     imported_count: int
     skipped_duplicates_count: int
     rejected_invalid_count: int
+    anomalies_detected: Optional[int] = 0
+    alerts_created: Optional[int] = 0
     message: str
     details: List[str] = []
+
 
 
 class MetricsResponse(BaseModel):
@@ -109,6 +112,35 @@ class AlertAcknowledgeResponse(BaseModel):
     acknowledged: bool
     acknowledged_at: datetime
     message: str
+
+
+class AnomalyDetailOut(BaseModel):
+    reading_id: Optional[int] = None
+    usage_kwh: float
+    is_anomaly: bool
+    status: str
+    reason: str
+    z_score: float
+    baseline_mean: float
+    baseline_std: float
+    sample_count: Optional[int] = 0
+    comparison_scope: Optional[str] = None
+    alert_status: Optional[str] = None
+    alert_severity: Optional[str] = None
+
+
+class AnomalyDetectionResponse(BaseModel):
+    status: str
+    meter_id: str
+    total_scanned: int
+    anomalies_detected: int
+    alerts_created: int
+    alerts_skipped_existing: int
+    z_threshold: float
+    min_kwh_threshold: float
+    message: str
+    details: List[AnomalyDetailOut] = []
+
 
 
 class SlabBreakdownItem(BaseModel):

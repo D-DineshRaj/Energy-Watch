@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import Alert
-from backend.schemas import AlertAcknowledgeResponse, AlertOut
+from backend.schemas import AlertAcknowledgeResponse, AlertOut, AnomalyDetectionResponse
+from backend.services.anomaly_detection import scan_and_generate_alerts
 
 router = APIRouter()
 
@@ -67,3 +68,20 @@ def reset_alert(
         acknowledged_at=datetime.now(timezone.utc),
         message="Alert reset to active successfully",
     )
+
+
+@router.post("/alerts/detect-anomalies", response_model=AnomalyDetectionResponse)
+def detect_anomalies(
+    meter_id: Optional[str] = None,
+    z_threshold: float = 2.5,
+    min_kwh: float = 4.5,
+    db: Session = Depends(get_db),
+):
+    """Run statistical anomaly detection over meter readings and generate persistent alerts."""
+    result = scan_and_generate_alerts(
+        db=db,
+        meter_id=meter_id or "EW-2847-HH",
+        z_threshold=z_threshold,
+        min_kwh_threshold=min_kwh,
+    )
+    return AnomalyDetectionResponse(**result)

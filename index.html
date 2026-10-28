@@ -937,8 +937,19 @@ var API = {
     var data = await res.json();
     if(!res.ok) throw new Error(data.detail || ('Upload error ' + res.status));
     return data;
+  },
+  detectAnomalies: async function(zThreshold, minKwh, meterId){
+    var params = new URLSearchParams();
+    if(zThreshold) params.append('z_threshold', zThreshold);
+    if(minKwh) params.append('min_kwh', minKwh);
+    if(meterId) params.append('meter_id', meterId);
+    var query = params.toString() ? ('?' + params.toString()) : '';
+    var res = await fetch('/api/alerts/detect-anomalies' + query, { method: 'POST' });
+    if(!res.ok) throw new Error('Anomaly detection API error ' + res.status);
+    return res.json();
   }
 };
+
 
 /* ── BACKEND HEALTH & STATUS ──────────────────────────────────────────────── */
 async function checkBackendHealth(){
@@ -1363,6 +1374,15 @@ function setFilter(f, el){
   loadReadings(f);
 }
 
+function escapeHtml(str){
+  if(!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 /* ── LOAD & ACKNOWLEDGE ALERTS ────────────────────────────────────────────── */
 async function loadAlerts(){
   var card = document.getElementById('alertCard');
@@ -1378,16 +1398,26 @@ async function loadAlerts(){
       currentAlert = alerts[0];
       card.classList.remove('acknowledged');
       bellDot.style.opacity = '1';
-      title.textContent = 'Unusual consumption detected';
-      badge.textContent = 'Active Alert (Simulated)';
-      badge.style.background = 'var(--amber)';
-      body.innerHTML = 'Your electricity usage reached <span class="ahl">8.9 kWh at 8:00 PM</span> &mdash; '
-        + '<span class="ahl">63% above</span> typical evening load. '
-        + 'Linked to reading ID: ' + (currentAlert.reading_id || 'EW-8') + ' in SQLite.';
-      actionArea.innerHTML = '<button class="btn-alert" id="ackBtn" onclick="acknowledgeActiveAlert()">'
+
+      var isCritical = currentAlert.severity === 'critical';
+      title.textContent = isCritical ? '⚠️ Critical Load Spike' : 'Unusual Consumption Detected';
+      badge.textContent = alerts.length > 1
+        ? (alerts.length + ' Active Alerts')
+        : (isCritical ? 'Critical Alert' : 'Active Alert (Simulated)');
+      badge.style.background = isCritical ? '#dc2626' : 'var(--amber)';
+
+      var readingIdInfo = currentAlert.reading_id ? (' <span style="font-size:11px;color:var(--n-400)">(Linked to reading #' + currentAlert.reading_id + ')</span>') : '';
+      body.innerHTML = escapeHtml(currentAlert.message) + readingIdInfo;
+
+      actionArea.innerHTML = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+        + '<button class="btn-alert" id="ackBtn" onclick="acknowledgeActiveAlert()">'
         + 'Acknowledge Alert'
         + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'
-        + '</button>';
+        + '</button>'
+        + '<button class="fc2" onclick="runManualAnomalyScan()" style="font-size:11px;cursor:pointer" title="Scan recent readings for consumption spikes">'
+        + 'Scan Anomalies'
+        + '</button>'
+        + '</div>';
     } else {
       currentAlert = null;
       card.classList.add('acknowledged');
@@ -1396,9 +1426,14 @@ async function loadAlerts(){
       badge.textContent = 'No Active Anomalies';
       badge.style.background = 'var(--em-600)';
       body.innerHTML = 'All smart meter readings within standard operating parameters. SQLite database has 0 unacknowledged alerts.';
-      actionArea.innerHTML = '<button class="btn-reset-alert" onclick="resetDemoAlert()">'
+      actionArea.innerHTML = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+        + '<button class="btn-reset-alert" onclick="resetDemoAlert()">'
         + '\u21BA Re-arm Demo Alert'
-        + '</button>';
+        + '</button>'
+        + '<button class="fc2" onclick="runManualAnomalyScan()" style="font-size:11px;cursor:pointer" title="Scan recent readings for consumption spikes">'
+        + 'Scan Anomalies'
+        + '</button>'
+        + '</div>';
     }
   } catch(err) {
     console.warn('Alerts API failed, setting baseline:', err);
@@ -1407,6 +1442,24 @@ async function loadAlerts(){
     body.innerHTML = 'Your electricity usage at <span class="ahl">8:00 PM</span> reached <span class="ahl">8.9 kWh</span> (63% above normal).';
   }
 }
+
+async function runManualAnomalyScan(){
+  showToast('Scanning meter readings for consumption anomalies...', 2000);
+  try {
+    var res = await API.detectAnomalies();
+    if(res.alerts_created > 0){
+      showToast('⚠️ Detected ' + res.anomalies_detected + ' anomaly spike(s)! Created ' + res.alerts_created + ' alert(s).', 3500);
+    } else if(res.anomalies_detected > 0){
+      showToast('Found ' + res.anomalies_detected + ' known anomaly (alert already active).', 3000);
+    } else {
+      showToast('✅ Anomaly scan complete: All ' + res.total_scanned + ' readings normal.', 3000);
+    }
+    loadAlerts();
+  } catch(err) {
+    showToast('Anomaly scan error: ' + err.message, 3000);
+  }
+}
+
 
 async function acknowledgeActiveAlert(){
   if(!currentAlert) return;

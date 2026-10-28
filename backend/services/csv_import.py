@@ -216,16 +216,37 @@ def parse_and_validate_csv(
         err_summary = "; ".join(details[:3])
         raise ValueError(f"No valid readings found in CSV file. Errors: {err_summary}")
 
+    anomalies_detected = 0
+    alerts_created = 0
+
     # Commit valid non-duplicate readings
     if to_insert:
         db.add_all(to_insert)
         db.commit()
         imported_count = len(to_insert)
 
+        # Automatically evaluate newly imported readings for consumption anomalies
+        from backend.services.anomaly_detection import scan_and_generate_alerts
+        target_meter = to_insert[0].meter_id if to_insert else None
+        anomaly_summary = scan_and_generate_alerts(
+            db=db,
+            candidate_readings=to_insert,
+            meter_id=target_meter,
+        )
+        anomalies_detected = anomaly_summary.get("anomalies_detected", 0)
+        alerts_created = anomaly_summary.get("alerts_created", 0)
+        if anomalies_detected > 0:
+            details.append(
+                f"Automated anomaly scan: {anomalies_detected} consumption spike(s) detected, "
+                f"{alerts_created} new alert(s) generated."
+            )
+
     if imported_count > 0:
         status_str = "success" if (rejected_invalid_count == 0 and skipped_duplicates_count == 0) else "partial_success"
         message_str = f"Successfully imported {imported_count} meter readings."
-        if skipped_duplicates_count > 0 or rejected_invalid_count > 0:
+        if alerts_created > 0:
+            message_str += f" ({alerts_created} anomaly alert(s) triggered)."
+        elif skipped_duplicates_count > 0 or rejected_invalid_count > 0:
             message_str += f" ({skipped_duplicates_count} duplicates skipped, {rejected_invalid_count} invalid rows rejected)."
     else:
         status_str = "skipped"
@@ -238,6 +259,8 @@ def parse_and_validate_csv(
         "imported_count": imported_count,
         "skipped_duplicates_count": skipped_duplicates_count,
         "rejected_invalid_count": rejected_invalid_count,
+        "anomalies_detected": anomalies_detected,
+        "alerts_created": alerts_created,
         "message": message_str,
         "details": details,
     }

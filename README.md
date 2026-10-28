@@ -4,7 +4,7 @@ EnergyWatch is a household electricity monitoring and forecasting application de
 
 ---
 
-## 📌 Project Status: Working Full-Stack Prototype (~90% Milestone — CSV Import & ML Forecasting)
+## 📌 Project Status: Working Full-Stack Prototype (~95% Milestone — Anomaly Detection & Alert Generation)
 
 | Layer | Status | Implementation Details |
 |---|---|---|
@@ -13,6 +13,7 @@ EnergyWatch is a household electricity monitoring and forecasting application de
 | **Database** | ✅ Operational | SQLite (`data/energywatch.db`) via SQLAlchemy 2.1.4 |
 | **Data Seeder** | ✅ Operational | Idempotent baseline seeder for simulated readings, alerts, and APERC tariff configurations |
 | **CSV Import** | ✅ Operational | Validates columns/values, rejects invalid/duplicates, stores readings in SQLite, sample file included |
+| **Anomaly Detection** | ✅ Operational | Statistical $Z$-score thresholding against hour-of-day baselines; automatic scan on CSV import & on-demand scan API |
 | **Alert Management** | ✅ Interactive | Full acknowledgement & reset cycle persisted in SQLite |
 | **Bill Calculation** | ✅ Verified (Phase 3) | Official APERC LT-I(A) Domestic telescopic tariff with slab breakdown, fixed charges, and duty |
 | **ML Forecasts** | ✅ Operational (Phase 4) | Gradient Boosting Regressor (shallow trees) with chronological 80/20 holdout evaluation & baseline benchmarking |
@@ -74,18 +75,19 @@ Grand Total Estimated Bill:                   ₹2,778.45  (Rounded: ₹2,778)
 
 ```
 EnergyWatch/
-├── index.html                  # Responsive dashboard with live clock, bill modal, ML forecast, CSV import
+├── index.html                  # Responsive dashboard with live clock, bill modal, ML forecast, CSV import, anomaly alerts
 ├── requirements.txt            # Pinned dependencies (FastAPI, scikit-learn, numpy, python-multipart)
 ├── .gitignore                  # Exclusion rules for venv, DB, secrets, and caches
 ├── README.md                   # Project documentation and developer guide
 ├── data/
 │   ├── .gitkeep                # Git tracking stub for database folder
-│   ├── meter_readings.csv      # Sample simulated meter readings CSV template
+│   ├── meter_readings.csv      # Sample simulated meter readings CSV template (168 hourly rows)
 │   └── energywatch.db          # SQLite database (auto-generated, untracked)
 ├── tests/
-│   ├── test_bill_calculation.py# Unit & API test suite for APERC bill calculation
-│   ├── test_forecasting.py     # Unit & API test suite for ML forecasting pipeline
-│   └── test_csv_import.py      # Unit & API test suite for CSV import & deduplication
+│   ├── test_bill_calculation.py# Unit & API test suite for APERC bill calculation (18 tests)
+│   ├── test_forecasting.py     # Unit & API test suite for ML forecasting pipeline (43 tests)
+│   ├── test_csv_import.py      # Unit & API test suite for CSV import & deduplication (18 tests)
+│   └── test_anomaly_detection.py# Unit & API test suite for automated anomaly detection (13 tests)
 └── backend/
     ├── __init__.py             # Backend package marker
     ├── main.py                 # FastAPI app, middleware, and route mounting
@@ -97,7 +99,8 @@ EnergyWatch/
     │   ├── __init__.py         # Services package marker
     │   ├── billing.py          # Pure Decimal APERC telescopic bill calculation engine
     │   ├── forecasting.py      # Autoregressive ML forecasting pipeline (scikit-learn)
-    │   └── csv_import.py       # CSV validation, deduplication, and database import engine
+    │   ├── csv_import.py       # CSV validation, deduplication, and database import engine
+    │   └── anomaly_detection.py# Statistical Z-score anomaly detection & alert generation engine
     └── routers/
         ├── __init__.py         # Routers package marker
         ├── readings.py         # /api/readings (filters: today, yesterday, week, all; upload-csv)
@@ -105,7 +108,7 @@ EnergyWatch/
         ├── billing.py          # /api/bill-estimate (itemized APERC bill calculation)
         ├── consumption.py      # /api/consumption (7d, 30d, 3m trends)
         ├── forecast.py         # /api/forecast (ML predictions + evaluation metrics)
-        └── alerts.py           # /api/alerts (retrieval, acknowledge, & reset)
+        └── alerts.py           # /api/alerts (retrieval, acknowledge, reset, detect-anomalies)
 ```
 
 ---
@@ -151,6 +154,8 @@ Open **PowerShell** in the project directory (`C:\Projects\EnergyWatrch(3-1)`):
 | `GET` | `/api/alerts` | List unacknowledged anomaly alerts |
 | `POST` | `/api/alerts/{id}/acknowledge` | Mark an alert as acknowledged in SQLite |
 | `POST` | `/api/alerts/{id}/reset` | Re-arm an alert for demonstration testing |
+| `POST` | `/api/alerts/detect-anomalies` | Run statistical Z-score anomaly scan across meter readings and generate persistent alerts |
+
 
 ### Sample Response: `GET /api/bill-estimate`
 
@@ -324,6 +329,46 @@ curl -X POST -H "Content-Type: text/csv" --data-binary "@data/meter_readings.csv
 
 ---
 
+## 🚨 Automated Energy Anomaly Detection
+
+EnergyWatch features an automated, statistical energy anomaly detection engine that identifies unusual consumption spikes, flags potential appliance faults or abnormal usage, and generates persistent alerts in SQLite.
+
+### 1. Statistical Detection Method
+
+For any given candidate hourly meter reading with consumption $x$ at hour $h$:
+
+$$Z = \frac{x - \mu}{\sigma}$$
+
+* **Stratified Hour-of-Day Baseline:** The engine calculates the mean ($\mu$) and sample standard deviation ($\sigma$) using prior historical readings for the same meter matching the exact same hour of the day ($N \ge 3$).
+* **Fallback Scope:** If fewer than 3 historical readings exist for that specific hour, the engine falls back to the meter's overall hourly history ($N \ge 5$).
+* **Dual Thresholding:** A reading is flagged as an anomaly if and only if **both** conditions are met:
+  1. **Statistical Threshold:** $Z \ge Z_{\text{threshold}}$ (default: $2.5\sigma$, identifying values in the extreme upper tail).
+  2. **Absolute Noise Floor:** $x \ge \text{min\_kwh\_threshold}$ (default: $4.5\text{ kWh}$). This prevents micro-fluctuations during low overnight baseload periods (e.g. 0.22 kWh rising to 0.45 kWh) from triggering false alarms.
+
+### 2. Edge-Case Safety & Guardrails
+
+* **Insufficient History ($N < 3$):** Safely marks readings as `"insufficient_history"` with `is_anomaly=False`. No false alarms or crashes occur when initializing new meters.
+* **Zero Variance ($\sigma = 0$):** If historical readings are identical (e.g. perfectly flat synthetic baseline), the engine avoids division-by-zero errors. An anomaly is flagged only if usage spikes by $\ge 50\%$ above the constant baseline and exceeds the absolute threshold.
+* **Dynamic Severity Scaling:**
+  * **Warning:** $2.5 \le Z < 3.5$ and usage $< 8.0\text{ kWh}$.
+  * **Critical:** $Z \ge 3.5$ or usage $\ge 8.0\text{ kWh}$ (indicating major appliance overdraw or continuous fault load).
+
+### 3. Idempotent Alert Generation & Deduplication
+
+* **Persistent SQLite Storage:** Anomalies are persisted as `Alert` records linked to the specific `reading_id` with contextual messages detailing the timestamp, spike volume, and baseline difference.
+* **Duplicate Prevention:** Before creating an alert, the engine queries existing active alerts by `reading_id` and `alert_type`. Re-scanning or re-uploading an identical CSV file will **never** generate duplicate alerts.
+
+### 4. How to Use Anomaly Detection
+
+* **Automated via CSV Import:** Every valid batch uploaded through `POST /api/readings/upload-csv` or the dashboard modal is automatically evaluated for anomalies.
+* **On-Demand Dashboard Scan:** Click the **Scan Anomalies** button in the Smart Alert card to run a real-time scan across all recent meter readings.
+* **REST API Endpoint (`POST /api/alerts/detect-anomalies`):**
+  ```bash
+  curl -X POST "http://localhost:8000/api/alerts/detect-anomalies?z_threshold=2.5&min_kwh=4.5"
+  ```
+
+---
+
 ## 🤖 Machine Learning Forecasting Pipeline
 
 EnergyWatch implements a disciplined, maintainable time-series forecasting pipeline using **Gradient Boosting Autoregression** with scikit-learn.
@@ -368,7 +413,7 @@ Predictions on the holdout test set are benchmarked against a **Naive Persistenc
 
 ## 🧪 Running Automated Tests
 
-Run the complete 79-test suite (APERC bill calculation, ML forecasting pipeline, and CSV import engine) using Python's standard `unittest` runner:
+Run the complete 92-test suite (APERC bill calculation, ML forecasting pipeline, CSV import engine, and anomaly detection) using Python's standard `unittest` runner:
 
 ```powershell
 .venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
@@ -385,9 +430,12 @@ Or run individual test suites:
 
 # CSV Import & Deduplication tests (18 tests)
 .venv\Scripts\python.exe -m unittest tests/test_csv_import.py -v
+
+# Automated Anomaly Detection & Alert tests (13 tests)
+.venv\Scripts\python.exe -m unittest tests/test_anomaly_detection.py -v
 ```
 
-### Test Suite Coverage (79 Passed Checks):
+### Test Suite Coverage (92 Passed Checks):
 1. **APERC Billing Tests (18 tests):**
    * Zero consumption baseline (fixed charge only)
    * Telescopic slab tiers (30, 75, 125, 225, 400 kWh) and delta boundary checks ($\pm 0.1$)
@@ -417,12 +465,27 @@ Or run individual test suites:
    * API upload endpoints (`POST /api/readings/upload-csv` multipart and raw text/csv fallback)
    * Query filter integration (`GET /api/readings?filter=all`)
    * Sample `data/meter_readings.csv` verification (strictly 168 rows, sequential ISO timestamps, domestic ranges, and night vs peak distribution)
+4. **Anomaly Detection & Alert Tests (16 tests):**
+   * Elementary statistical baseline calculations (mean, sample standard deviation, empty lists, zero variance)
+   * Normal consumption evaluation within standard deviation limits
+   * High consumption anomaly detection ($Z > 2.5$)
+   * Absolute minimum noise floor enforcement (ignoring minor night baseload increases)
+   * Insufficient historical data handling ($N < 3$ returns safe fallback)
+   * Zero variance handling ($\sigma = 0$ avoids division by zero)
+   * Historical-only baseline enforcement (strictly excludes candidate reading itself and future readings)
+   * Multi-meter isolation in evaluation (readings from other meters never contaminate candidate baseline)
+   * Multi-meter database scan isolation (independent baselines and meter-specific alert generation)
+   * Idempotent alert generation (re-scanning same spike creates zero duplicate alerts in SQLite)
+   * CSV upload integration (importing anomaly automatically triggers alert)
+   * CSV repeated upload deduplication (re-uploading identical batch creates zero duplicate alerts)
+   * API endpoint contracts (`POST /api/alerts/detect-anomalies`, `GET /api/alerts`, acknowledge/reset lifecycle)
 
 ---
 
 ## ⚠️ Data Disclaimer & Roadmap
 
 * **Simulated Meter Data:** Readings represent simulated household patterns (Meter `EW-2847-HH`) used to validate full-stack data flow, API contracts, and user interactions.
+* **Experimental Anomaly Detection:** The anomaly detection engine is calibrated for demonstration and software validation against simulated consumption patterns. It has not been trained or certified on physical smart-meter telemetry or real-world household power signatures.
 * **Experimental ML Forecasting:** The machine learning pipeline is operational using simulated historical consumption. Because synthetic data lacks weather, temperature, occupancy, and solar factors, reported evaluation metrics reflect simulated behavior and do not claim real-world meter accuracy.
 * **Informational Bill Estimates:** Bill calculation uses verified APERC domestic tariff rules, but is intended solely for consumption monitoring and financial budgeting. Official utility bills are issued exclusively by state distribution companies (APSPDCL, APEPDCL, APCPDCL).
 * **Hardware Integration:** Real smart meter hardware integration (Modbus / MQTT / DLMS-COSEM) is scheduled for future physical deployment.

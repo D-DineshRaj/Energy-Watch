@@ -1,4 +1,8 @@
-"""Services package for EnergyWatch business logic."""
+from backend.services.anomaly_detection import (
+    compute_baseline_stats,
+    evaluate_reading_for_anomaly,
+    scan_and_generate_alerts,
+)
 from backend.services.billing import calculate_aperc_bill
 from backend.services.csv_import import parse_and_validate_csv
 from backend.services.forecasting import (
@@ -11,7 +15,10 @@ from backend.services.forecasting import (
 
 __all__ = [
     "calculate_aperc_bill",
+    "compute_baseline_stats",
+    "evaluate_reading_for_anomaly",
     "parse_and_validate_csv",
+    "scan_and_generate_alerts",
     "train_and_evaluate_forecasting_pipeline",
     "validate_time_series",
     "prepare_autoregressive_features",
