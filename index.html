@@ -335,6 +335,10 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <span>Connected to <strong>FastAPI Backend</strong> &amp; <strong>SQLite Database</strong></span>
     </div>
     <div class="demo-actions">
+      <button class="demo-btn" onclick="openStreamModal()" title="Module 5: Multithreaded Producer-Consumer Logging Demonstration">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
+        OS Multithreading
+      </button>
       <button class="demo-btn" onclick="refreshAllData()" title="Reload fresh data from database">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
         Reload Data
@@ -367,6 +371,10 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
     <div>
       <h1 id="gtxt">Welcome &#128075;</h1>
       <p id="dtxt">Loading date and time...</p>
+      <div style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;font-weight:500;color:var(--em-800);background:var(--em-50);border:1px solid var(--em-200);border-radius:20px;padding:3px 10px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--em-600);display:inline-block"></span>
+        Simulated Telemetry &mdash; Current Date: 31 October 2026 &middot; Historical Data Available Through: 17 September 2026
+      </div>
     </div>
     <div class="status-chip" id="statusChip" onclick="checkBackendHealth()" title="Click to test live backend connection">
       <span class="sdot" id="statusDot"></span>
@@ -448,12 +456,18 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
 
   <!-- FORECAST SECTION (HERO) -->
   <div class="card" id="forecast-sec" style="padding:24px">
-    <div class="sec-hdr">
+    <div class="sec-hdr" style="flex-wrap:wrap;gap:10px">
       <div>
         <div class="sec-ttl" id="fcSecTitle">&#129302; Consumption Forecast (ML Pipeline)</div>
-        <div class="sec-sub" id="fcSecSub">Gradient Boosting Autoregression &middot; Chronological holdout evaluation</div>
+        <div class="sec-sub" id="fcSecSub">ARIMA(1,1,1) &middot; Chronological holdout evaluation</div>
       </div>
-      <span class="sim-badge" id="fcModelBadge">ML Computed (Simulated Data)</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="ch-tabs">
+          <button class="ch-tab active" id="btnModelArima" onclick="switchForecastModel('arima', this)" title="Official college requirement: ARIMA time-series model">ARIMA (1,1,1)</button>
+          <button class="ch-tab" id="btnModelGbr" onclick="switchForecastModel('gradient_boosting', this)" title="Gradient Boosting regression model">Gradient Boosting</button>
+        </div>
+        <span class="sim-badge" id="fcModelBadge">ML Forecast</span>
+      </div>
     </div>
     <div class="fc-grid">
       <div>
@@ -480,6 +494,11 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
             <div class="mc" style="flex:1;min-width:120px;padding:12px">
               <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Baseline MAE</div>
               <div style="font-size:18px;font-weight:700;color:#a3a3a3" id="fcBaseMAE">--</div>
+              <div style="font-size:10px;color:var(--n-400)">kWh (Lag-1)</div>
+            </div>
+            <div class="mc" style="flex:1;min-width:120px;padding:12px">
+              <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Baseline RMSE</div>
+              <div style="font-size:18px;font-weight:700;color:#a3a3a3" id="fcBaseRMSE">--</div>
               <div style="font-size:10px;color:var(--n-400)">kWh (Lag-1)</div>
             </div>
           </div>
@@ -585,7 +604,7 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
         </button>
         <button class="fc2" onclick="openPrintableStatement()" style="font-size:12px;padding:6px 12px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px" title="Generate printable energy utility statement / Save PDF">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Print Statement
+          View / Print Statement
         </button>
       </div>
     </div>
@@ -905,6 +924,7 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
 
       <div id="csvResultBox" style="display:none;border-radius:8px;padding:12px;font-size:12px"></div>
     </div>
+  </div>
 </div>
 
 <!-- PRINTABLE ENERGY STATEMENT MODAL -->
@@ -932,6 +952,86 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
     <div class="bill-modal-body" style="padding:0">
       <div id="printableStatementArea">
         <div style="text-align:center;padding:40px"><span class="spinner"></span> Generating energy statement...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MULTITHREADED INGESTION & OS PIPELINE MODAL (MODULE 5) -->
+<div class="bill-modal-overlay" id="streamModalOverlay" onclick="handleStreamModalOverlayClick(event)">
+  <div class="bill-modal" role="dialog" aria-modal="true" aria-labelledby="streamModalTitle" style="max-width:740px">
+    <div class="bill-modal-header no-print">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="mc-icon ic-b" style="width:34px;height:34px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+        </div>
+        <div>
+          <h2 id="streamModalTitle" style="font-size:16px;font-weight:700;color:var(--em-950);margin:0">OS Module: Multithreaded Ingestion &amp; Buffering</h2>
+          <div style="font-size:11px;color:var(--n-400);margin-top:2px">Simulated Producers &rarr; Thread-Safe Queue &rarr; Memory Buffer &rarr; Batch Consumer &rarr; SQLite</div>
+        </div>
+      </div>
+      <button class="bill-modal-close" onclick="closeStreamModal()" title="Close dialog (Esc)">&times;</button>
+    </div>
+
+    <div class="bill-modal-body">
+      <!-- Architecture Flow Diagram Strip -->
+      <div style="background:#f1f5f9;border-radius:8px;padding:12px 14px;font-size:11px;color:var(--n-700)">
+        <strong>Producer-Consumer Architecture:</strong>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:6px;flex-wrap:wrap">
+          <span style="background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-weight:600">Producers (Threads)</span>
+          <span>&rarr;</span>
+          <span style="background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-weight:600">queue.Queue (FIFO)</span>
+          <span>&rarr;</span>
+          <span style="background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-weight:600">Buffer (Lock)</span>
+          <span>&rarr;</span>
+          <span style="background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-weight:600">Consumer Thread</span>
+          <span>&rarr;</span>
+          <span style="background:#fff;border:1px solid #10b981;color:#047857;padding:4px 8px;border-radius:4px;font-weight:600">SQLite DB</span>
+        </div>
+      </div>
+
+      <!-- Live KPI Grid -->
+      <div class="bill-kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-top:4px">
+        <div class="bill-kpi">
+          <span class="bill-kpi-lbl">Queue Length</span>
+          <span class="bill-kpi-val" id="streamQueueSize">0</span>
+          <span class="bill-kpi-sub">queue.Queue items</span>
+        </div>
+        <div class="bill-kpi">
+          <span class="bill-kpi-lbl">Memory Buffer</span>
+          <span class="bill-kpi-val" id="streamBufferSize">0</span>
+          <span class="bill-kpi-sub">threading.Lock cache</span>
+        </div>
+        <div class="bill-kpi">
+          <span class="bill-kpi-lbl">Total Processed</span>
+          <span class="bill-kpi-val" id="streamTotalProcessed">0</span>
+          <span class="bill-kpi-sub">Committed to SQLite</span>
+        </div>
+        <div class="bill-kpi">
+          <span class="bill-kpi-lbl">Batches Written</span>
+          <span class="bill-kpi-val" id="streamBatchesWritten">0</span>
+          <span class="bill-kpi-sub">Atomic transactions</span>
+        </div>
+      </div>
+
+      <!-- Live Status & Controls -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--n-200);padding-top:14px">
+        <div style="font-size:12px;color:var(--n-600)">
+          Batch Consumer: <strong id="streamConsumerStatus" style="color:var(--em-700)">Active (Daemon Thread)</strong>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="fc2" style="background:#2563eb;color:#fff;border:none;cursor:pointer;padding:7px 16px;border-radius:6px;font-weight:600;font-size:12px" onclick="runStreamSimulation()" id="btnRunStream">
+            Spawn 3 Concurrent Producers
+          </button>
+          <button class="fc2" style="border:1px solid var(--n-300);cursor:pointer;padding:7px 14px;border-radius:6px;font-size:12px" onclick="flushStreamBuffer()" id="btnFlushStream">
+            Flush Buffer Now
+          </button>
+        </div>
+      </div>
+
+      <!-- Real-time Terminal Log Display -->
+      <div style="background:#0f172a;color:#38bdf8;font-family:monospace;font-size:11px;padding:12px;border-radius:6px;max-height:160px;overflow-y:auto;line-height:1.6" id="streamTerminalLog">
+        <div>[System] Multithreaded Ingestion Manager initialized. Ready for concurrent telemetry streams.</div>
       </div>
     </div>
   </div>
@@ -1036,45 +1136,55 @@ function countUp(el, target, dec, pre, dur){
   requestAnimationFrame(step);
 }
 
-/* ── API CLIENT ───────────────────────────────────────────────────────────── */
+/* ── API CLIENT & DEPLOYMENT BASE URL ─────────────────────────────────────── */
+var API_BASE_URL = window.ENERGYWATCH_API_BASE || localStorage.getItem('ew_api_base') || '';
+
 var API = {
   getHealth: async function(){
-    var res = await fetch('/health');
+    var res = await fetch(API_BASE_URL + '/health');
     if(!res.ok) throw new Error('Health check error ' + res.status);
     return res.json();
   },
-  getMetrics: async function(){
-    var res = await fetch('/api/metrics');
+  getMetrics: async function(currentDate){
+    var query = currentDate ? ('?current_date=' + encodeURIComponent(currentDate)) : '';
+    var res = await fetch(API_BASE_URL + '/api/metrics' + query);
     if(!res.ok) throw new Error('Metrics API error ' + res.status);
     return res.json();
   },
   getConsumption: async function(range){
-    var res = await fetch('/api/consumption?range=' + encodeURIComponent(range));
+    var res = await fetch(API_BASE_URL + '/api/consumption?range=' + encodeURIComponent(range));
     if(!res.ok) throw new Error('Consumption API error ' + res.status);
     return res.json();
   },
-  getReadings: async function(filter){
-    var res = await fetch('/api/readings?filter=' + encodeURIComponent(filter));
+  getReadings: async function(filter, currentDate){
+    var query = '?filter=' + encodeURIComponent(filter);
+    if(currentDate) query += '&current_date=' + encodeURIComponent(currentDate);
+    var res = await fetch(API_BASE_URL + '/api/readings' + query);
     if(!res.ok) throw new Error('Readings API error ' + res.status);
     return res.json();
   },
-  getForecast: async function(){
-    var res = await fetch('/api/forecast');
+  getForecast: async function(modelType, horizon, currentDate){
+    var params = new URLSearchParams();
+    if(modelType) params.append('model_type', modelType);
+    if(horizon) params.append('horizon', horizon);
+    if(currentDate) params.append('current_date', currentDate);
+    var query = params.toString() ? ('?' + params.toString()) : '';
+    var res = await fetch(API_BASE_URL + '/api/forecast' + query);
     if(!res.ok) throw new Error('Forecast API error ' + res.status);
     return res.json();
   },
   getAlerts: async function(){
-    var res = await fetch('/api/alerts?unacknowledged_only=true');
+    var res = await fetch(API_BASE_URL + '/api/alerts?unacknowledged_only=true');
     if(!res.ok) throw new Error('Alerts API error ' + res.status);
     return res.json();
   },
   acknowledgeAlert: async function(id){
-    var res = await fetch('/api/alerts/' + encodeURIComponent(id) + '/acknowledge', { method: 'POST' });
+    var res = await fetch(API_BASE_URL + '/api/alerts/' + encodeURIComponent(id) + '/acknowledge', { method: 'POST' });
     if(!res.ok) throw new Error('Acknowledge API error ' + res.status);
     return res.json();
   },
   resetAlert: async function(id){
-    var res = await fetch('/api/alerts/' + encodeURIComponent(id) + '/reset', { method: 'POST' });
+    var res = await fetch(API_BASE_URL + '/api/alerts/' + encodeURIComponent(id) + '/reset', { method: 'POST' });
     if(!res.ok) throw new Error('Reset alert error ' + res.status);
     return res.json();
   },
@@ -1082,14 +1192,14 @@ var API = {
     var query = '';
     if(kwh !== undefined && kwh !== null) query += '?consumption_kwh=' + encodeURIComponent(kwh);
     if(load !== undefined && load !== null) query += (query ? '&' : '?') + 'sanctioned_load_kw=' + encodeURIComponent(load);
-    var res = await fetch('/api/bill-estimate' + query);
+    var res = await fetch(API_BASE_URL + '/api/bill-estimate' + query);
     if(!res.ok) throw new Error('Bill estimate API error ' + res.status);
     return res.json();
   },
   uploadCsv: async function(fileOrBlob, filename){
     var fd = new FormData();
     fd.append('file', fileOrBlob, filename || 'meter_readings.csv');
-    var res = await fetch('/api/readings/upload-csv', {
+    var res = await fetch(API_BASE_URL + '/api/readings/upload-csv', {
       method: 'POST',
       body: fd
     });
@@ -1103,7 +1213,7 @@ var API = {
     if(minKwh) params.append('min_kwh', minKwh);
     if(meterId) params.append('meter_id', meterId);
     var query = params.toString() ? ('?' + params.toString()) : '';
-    var res = await fetch('/api/alerts/detect-anomalies' + query, { method: 'POST' });
+    var res = await fetch(API_BASE_URL + '/api/alerts/detect-anomalies' + query, { method: 'POST' });
     if(!res.ok) throw new Error('Anomaly detection API error ' + res.status);
     return res.json();
   },
@@ -1113,7 +1223,7 @@ var API = {
     if(endDate) params.append('end_date', endDate);
     if(meterId) params.append('meter_id', meterId);
     var query = params.toString() ? ('?' + params.toString()) : '';
-    var res = await fetch('/api/reports/summary' + query);
+    var res = await fetch(API_BASE_URL + '/api/reports/summary' + query);
     var data = await res.json();
     if(!res.ok) throw new Error(data.detail || ('Report API error ' + res.status));
     return data;
@@ -1125,10 +1235,34 @@ var API = {
     if(meterId) params.append('meter_id', meterId);
     if(loadKw) params.append('sanctioned_load_kw', loadKw);
     var query = params.toString() ? ('?' + params.toString()) : '';
-    var res = await fetch('/api/reports/statement' + query);
+    var res = await fetch(API_BASE_URL + '/api/reports/statement' + query);
     var data = await res.json();
     if(!res.ok) throw new Error(data.detail || ('Statement API error ' + res.status));
     return data;
+  },
+  getMeters: async function(){
+    var res = await fetch(API_BASE_URL + '/api/meters');
+    if(!res.ok) throw new Error('Meters API error ' + res.status);
+    return res.json();
+  },
+  getStreamStats: async function(){
+    var res = await fetch(API_BASE_URL + '/api/stream/stats');
+    if(!res.ok) throw new Error('Stream stats error ' + res.status);
+    return res.json();
+  },
+  simulateStream: async function(producers, readingsPerProd, interval){
+    var params = new URLSearchParams();
+    if(producers) params.append('num_producers', producers);
+    if(readingsPerProd) params.append('readings_per_producer', readingsPerProd);
+    if(interval) params.append('interval_seconds', interval);
+    var res = await fetch(API_BASE_URL + '/api/stream/simulate?' + params.toString(), { method: 'POST' });
+    if(!res.ok) throw new Error('Stream simulation error ' + res.status);
+    return res.json();
+  },
+  flushStream: async function(){
+    var res = await fetch(API_BASE_URL + '/api/stream/flush', { method: 'POST' });
+    if(!res.ok) throw new Error('Stream flush error ' + res.status);
+    return res.json();
   }
 };
 
@@ -1156,32 +1290,100 @@ async function checkBackendHealth(){
 async function loadMetrics(){
   try {
     var data = await API.getMetrics();
-    countUp(document.getElementById('m1'), data.today_kwh, 1, '', 700);
-    countUp(document.getElementById('m2'), data.month_kwh, 0, '', 850);
-    countUp(document.getElementById('m3'), data.tomorrow_forecast_kwh, 1, '', 700);
+    var m1Cards = document.querySelectorAll('.metrics-grid .mc');
 
-    var m4 = document.getElementById('m4');
-    var m4Sub = document.getElementById('m4-sub');
-    var m4Badge = document.getElementById('m4-badge');
-
-    if(data.estimated_bill_inr === null || data.estimated_bill_inr === undefined){
-      m4.textContent = 'Pending Tariff';
-      m4.style.fontSize = '20px';
-      m4.style.color = 'var(--n-500)';
-      if(m4Sub){
-        m4Sub.textContent = 'APERC Schedule Pending';
-        m4Sub.title = data.tariff_note || 'APERC tariff schedule not configured.';
-      }
-      if(m4Badge){
-        m4Badge.textContent = 'Pending';
-        m4Badge.className = 'mc-badge badge-n';
+    // M1: Today's Usage
+    var m1 = document.getElementById('m1');
+    var m1Card = m1Cards[0];
+    if(data.today_has_data && data.today_kwh !== null){
+      countUp(m1, data.today_kwh, 1, '', 700);
+      if(m1Card){
+        var m1Sub = m1Card.querySelector('.mc-sub');
+        if(m1Sub) m1Sub.textContent = 'Simulated Daily Reading (31 Oct 2026)';
+        var m1Badge = m1Card.querySelector('.mc-badge');
+        if(m1Badge){
+          m1Badge.textContent = 'Simulated Demo Data';
+          m1Badge.className = 'mc-badge badge-up';
+          m1Badge.style.background = '#fefce8';
+          m1Badge.style.color = '#854d0e';
+          m1Badge.style.border = '1px dashed #fbbf24';
+        }
       }
     } else {
+      m1.textContent = '--';
+      if(m1Card){
+        var m1Sub = m1Card.querySelector('.mc-sub');
+        if(m1Sub) m1Sub.textContent = data.today_message || 'No readings for today (31 Oct 2026)';
+        var m1Badge = m1Card.querySelector('.mc-badge');
+        if(m1Badge){ m1Badge.textContent = 'No Telemetry'; m1Badge.className = 'mc-badge badge-n'; }
+        var m1Tag = m1Card.querySelector('.mc-tag');
+        if(m1Tag) m1Tag.innerHTML = '<span class="dy" style="background:#94a3b8"></span>No Data Recorded';
+      }
+    }
+
+    // M2: This Month
+    var m2 = document.getElementById('m2');
+    var m2Card = m1Cards[1];
+    if(data.month_has_data && data.month_kwh !== null){
+      countUp(m2, data.month_kwh, 0, '', 850);
+      if(m2Card){
+        var m2Sub = m2Card.querySelector('.mc-sub');
+        if(m2Sub) m2Sub.textContent = 'Simulated MTD Total (1\u201331 Oct 2026)';
+        var m2Badge = m2Card.querySelector('.mc-badge');
+        if(m2Badge){
+          m2Badge.textContent = 'Simulated Demo Data';
+          m2Badge.className = 'mc-badge badge-up';
+          m2Badge.style.background = '#fefce8';
+          m2Badge.style.color = '#854d0e';
+          m2Badge.style.border = '1px dashed #fbbf24';
+        }
+      }
+    } else {
+      m2.textContent = '--';
+      if(m2Card){
+        var m2Sub = m2Card.querySelector('.mc-sub');
+        if(m2Sub) m2Sub.textContent = data.month_message || 'No October readings recorded';
+        var m2Badge = m2Card.querySelector('.mc-badge');
+        if(m2Badge){ m2Badge.textContent = 'Historical Ref'; m2Badge.className = 'mc-badge badge-n'; }
+        var m2Tag = m2Card.querySelector('.mc-tag');
+        if(m2Tag) m2Tag.innerHTML = '<span class="dy" style="background:#94a3b8"></span>Historical Ref: 420 kWh (Sep)';
+      }
+    }
+
+    // M3: Tomorrow's Forecast
+    var m3 = document.getElementById('m3');
+    var m3Card = m1Cards[2];
+    if(data.tomorrow_forecast_kwh !== null){
+      countUp(m3, data.tomorrow_forecast_kwh, 1, '', 700);
+      if(m3Card){
+        var m3Sub = m3Card.querySelector('.mc-sub');
+        if(m3Sub) m3Sub.textContent = 'Target: Sun, 1 Nov 2026 (ML Prediction)';
+        var m3Badge = m3Card.querySelector('.mc-badge');
+        if(m3Badge){
+          m3Badge.textContent = 'ML Forecast';
+          m3Badge.className = 'mc-badge badge-up';
+          m3Badge.style.background = '#eff6ff';
+          m3Badge.style.color = '#1d4ed8';
+          m3Badge.style.border = '1px solid #93c5fd';
+        }
+        var m3Tag = m3Card.querySelector('.mc-tag');
+        if(m3Tag) m3Tag.innerHTML = '<span class="dy"></span>' + (data.forecast_is_real_model ? 'ARIMA / ML Forecast' : 'ML Model');
+      }
+    }
+
+    // M4: Estimated Bill
+    var m4 = document.getElementById('m4');
+    var m4Card = m1Cards[3];
+    var m4Sub = document.getElementById('m4-sub');
+    var m4Badge = document.getElementById('m4-badge');
+    var m4Tag = document.getElementById('m4-tag');
+
+    if(data.month_has_data && data.estimated_bill_inr !== null){
       m4.style.fontSize = '30px';
       m4.style.color = 'var(--em-950)';
       countUp(m4, data.estimated_bill_inr, 0, '\u20B9', 900);
       if(m4Sub){
-        m4Sub.textContent = '\u20B9' + Math.round(data.estimated_bill_inr).toLocaleString('en-IN') + ' for ' + data.month_kwh + ' kWh (LT-I(A) \u00b7 FY 2026-27)';
+        m4Sub.textContent = '\u20B9' + Math.round(data.estimated_bill_inr).toLocaleString('en-IN') + ' for ' + data.month_kwh + ' kWh (APERC LT-I(A))';
         m4Sub.title = data.tariff_note || 'Verified APERC Domestic Telescopic Tariff (FY 2026-27)';
       }
       if(m4Badge){
@@ -1191,25 +1393,29 @@ async function loadMetrics(){
         m4Badge.style.color = '#047857';
         m4Badge.style.border = '1px solid #a7f3d0';
       }
+    } else {
+      m4.textContent = '--';
+      m4.style.fontSize = '26px';
+      m4.style.color = 'var(--n-500)';
+      if(m4Sub){
+        m4Sub.textContent = 'No current month usage to bill';
+        m4Sub.title = 'Historical benchmark: \u20B92,778 for 420 kWh in September.';
+      }
+      if(m4Badge){
+        m4Badge.textContent = 'Sep Ref Available';
+        m4Badge.className = 'mc-badge badge-n';
+      }
+      if(m4Tag){
+        m4Tag.innerHTML = '<span class="dy"></span>Sep Historical Bill: \u20B92,778 &rarr;';
+      }
     }
 
     // Pre-cache bill breakdown for instant modal view
     try {
-      cachedBillData = await API.getBillEstimate(data.month_kwh, 1.0);
+      cachedBillData = await API.getBillEstimate(data.month_has_data ? data.month_kwh : 420, 1.0);
     } catch(e){}
   } catch(err) {
     console.warn('Metrics endpoint failed, using fallback:', err);
-    countUp(document.getElementById('m1'), 35.4, 1, '', 700);
-    countUp(document.getElementById('m2'), 420, 0, '', 850);
-    countUp(document.getElementById('m3'), 37.2, 1, '', 700);
-    var m4 = document.getElementById('m4');
-    var m4Sub = document.getElementById('m4-sub');
-    if(m4){
-      m4.textContent = '\u20B92,778';
-      m4.style.fontSize = '30px';
-      m4.style.color = 'var(--em-950)';
-    }
-    if(m4Sub) m4Sub.textContent = '\u20B92,778 for 420 kWh (LT-I(A))';
   }
 }
 
@@ -1327,12 +1533,22 @@ function switchTab(range, el){
   loadConsumption(range);
 }
 
+var currentForecastModel = 'arima';
+
+function switchForecastModel(mType, btn){
+  document.querySelectorAll('#btnModelArima, #btnModelGbr').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  currentForecastModel = mType;
+  loadForecast(mType);
+}
+
 /* ── LOAD FORECAST ────────────────────────────────────────────────────────── */
-async function loadForecast(){
+async function loadForecast(modelType){
+  var mType = modelType || currentForecastModel || 'arima';
   var container = document.getElementById('fcDaysContainer');
   var metricsPanel = document.getElementById('fcMetricsPanel');
   try {
-    var data = await API.getForecast();
+    var data = await API.getForecast(mType);
 
     // Update section header based on model type
     var secTitle = document.getElementById('fcSecTitle');
@@ -1342,11 +1558,17 @@ async function loadForecast(){
     var m3Tag = document.getElementById('m3-tag');
 
     if(data.is_computed && data.is_real_model){
-      if(secTitle) secTitle.innerHTML = '&#129302; Consumption Forecast (ML Pipeline)';
-      if(secSub) secSub.textContent = (data.model_name || 'Gradient Boosting') + ' \u00b7 ' + (data.evaluation_split || 'Chronological holdout');
-      if(modelBadge) modelBadge.textContent = 'ML Computed (Simulated Data)';
-      if(m3Badge){ m3Badge.textContent = 'ML Model'; m3Badge.className = 'mc-badge badge-up'; m3Badge.style.background = '#eff6ff'; m3Badge.style.color = '#1d4ed8'; m3Badge.style.border = '1px solid #93c5fd'; }
-      if(m3Tag) m3Tag.innerHTML = '<span class="dy"></span>GBR Autoregressive';
+      if(secTitle) secTitle.innerHTML = '&#129302; Consumption Forecast (' + (data.model_name || 'ARIMA') + ')';
+      if(secSub){
+        if(data.is_extrapolated_gap){
+          secSub.textContent = (data.model_name || 'ARIMA') + ' \u00b7 Extrapolated across ' + (data.gap_days || 53) + '-day observation gap from ' + (data.latest_historical_date || 'Sep 2026');
+        } else {
+          secSub.textContent = (data.model_name || 'ARIMA') + ' \u00b7 ' + (data.evaluation_split || 'Chronological holdout');
+        }
+      }
+      if(modelBadge) modelBadge.textContent = (data.model_name || 'ARIMA') + ' (ML Model)';
+      if(m3Badge){ m3Badge.textContent = 'ML Forecast'; m3Badge.className = 'mc-badge badge-up'; m3Badge.style.background = '#eff6ff'; m3Badge.style.color = '#1d4ed8'; m3Badge.style.border = '1px solid #93c5fd'; }
+      if(m3Tag) m3Tag.innerHTML = '<span class="dy"></span>' + (data.model_name || 'ARIMA');
     } else {
       if(secTitle) secTitle.innerHTML = '&#129302; Consumption Forecast (Baseline)';
       if(secSub) secSub.textContent = 'Static sample forecast \u00b7 ML pipeline fallback';
@@ -1358,12 +1580,12 @@ async function loadForecast(){
     // Populate forecast days list
     var html = '';
     data.days.forEach(function(d){
-      var isActual = d.day_name === 'Today';
+      var isActual = d.status === 'actual' || d.day_name === 'Today';
       var chipClass = isActual ? 'ca' : 'cp';
-      var chipText = isActual ? 'Actual' : (data.is_computed ? 'ML Predicted' : 'Static Seed');
+      var chipText = isActual ? 'Actual' : (d.is_extrapolated_gap ? 'ML Extrapolated' : (data.is_computed ? 'ML Predicted' : 'Static Seed'));
       var boundsText = '';
       if(!isActual && d.lower_bound_kwh != null && d.upper_bound_kwh != null){
-        boundsText = '<div style="font-size:10px;color:var(--n-400)" title="Approximate experimental prediction interval based on holdout residual variance, not a guaranteed confidence interval">approx. [' + d.lower_bound_kwh.toFixed(1) + ' \u2013 ' + d.upper_bound_kwh.toFixed(1) + ']</div>';
+        boundsText = '<div style="font-size:10px;color:var(--n-400)" title="Approximate experimental prediction interval based on holdout residual variance">approx. [' + d.lower_bound_kwh.toFixed(1) + ' \u2013 ' + d.upper_bound_kwh.toFixed(1) + ']</div>';
       }
       html += '<div class="fc-row">'
         + '<div><div class="fc-day">' + d.day_name + '</div><div class="fc-date">' + d.date + '</div></div>'
@@ -1378,11 +1600,20 @@ async function loadForecast(){
       document.getElementById('fcMAE').textContent = data.mae.toFixed(3);
       document.getElementById('fcRMSE').textContent = data.rmse.toFixed(3);
       document.getElementById('fcBaseMAE').textContent = data.baseline_mae != null ? data.baseline_mae.toFixed(3) : '--';
+      var baseRmseEl = document.getElementById('fcBaseRMSE');
+      if(baseRmseEl) baseRmseEl.textContent = data.baseline_rmse != null ? data.baseline_rmse.toFixed(3) : '--';
       var evalNote = document.getElementById('fcEvalNote');
       if(evalNote){
         var noteText = data.evaluation_split || '';
         if(data.training_data_points) noteText += ' \u00b7 ' + data.training_data_points + ' training observations';
         noteText += ' \u00b7 Simulated household data';
+        if(data.mae != null && data.baseline_mae != null && data.rmse != null && data.baseline_rmse != null){
+          if(data.rmse < data.baseline_rmse && data.mae > data.baseline_mae){
+            noteText += ' \u00b7 Model achieves lower RMSE (' + data.rmse.toFixed(3) + ' vs ' + data.baseline_rmse.toFixed(3) + ' kWh), while Baseline retains lower MAE (' + data.baseline_mae.toFixed(3) + ' vs ' + data.mae.toFixed(3) + ' kWh).';
+          } else if(data.rmse < data.baseline_rmse && data.mae < data.baseline_mae){
+            noteText += ' \u00b7 Model outperforms baseline across both MAE and RMSE.';
+          }
+        }
         evalNote.textContent = noteText;
       }
       metricsPanel.style.display = 'block';
@@ -1391,12 +1622,15 @@ async function loadForecast(){
     // Update insight text
     var insightEl = document.getElementById('fcInsightText');
     if(insightEl && data.is_computed){
-      var todayKwh = data.days[0] ? data.days[0].predicted_kwh : 35.4;
-      var tmrwKwh = data.days[1] ? data.days[1].predicted_kwh : todayKwh;
-      var pctChange = ((tmrwKwh - todayKwh) / todayKwh * 100).toFixed(1);
+      var f1 = data.days[0] ? data.days[0].predicted_kwh : 34.2;
+      var f2 = data.days[1] ? data.days[1].predicted_kwh : f1;
+      var pctChange = ((f2 - f1) / f1 * 100).toFixed(1);
       var direction = pctChange >= 0 ? 'increase' : 'decrease';
-      insightEl.innerHTML = 'ML model predicts <strong>' + Math.abs(pctChange) + '%</strong> ' + direction + ' tomorrow'
-        + ' (MAE: ' + data.mae.toFixed(2) + ' kWh). Trained on simulated 30-day interval series.';
+      var dateLabel = data.days[0] ? data.days[0].date : 'Nov 01';
+      insightEl.innerHTML = 'ML model predicts <strong>' + f1 + ' kWh</strong> for ' + dateLabel
+        + ' and <strong>' + Math.abs(pctChange) + '%</strong> ' + direction + ' for the following day'
+        + ' (Holdout MAE: ' + (data.mae != null ? data.mae.toFixed(2) : '1.45') + ' kWh). '
+        + (data.is_extrapolated_gap ? 'Forward-projected across ' + (data.gap_days || 53) + '-day observation gap from historical data.' : 'Trained on 30-day series.');
     }
 
     // Render forecast chart
@@ -1404,22 +1638,20 @@ async function loadForecast(){
   } catch(err) {
     console.warn('Forecast API failed, using fallback:', err);
     container.innerHTML = '<div class="fc-row">'
-      + '<div><div class="fc-day">Today</div><div class="fc-date">Tuesday, Sep 8</div></div>'
-      + '<div class="fc-r"><div class="fc-val">35.4 <span class="fu">kWh</span></div><span class="fc-chip ca">Actual</span></div>'
+      + '<div><div class="fc-day">Tomorrow</div><div class="fc-date">Sunday, Nov 01</div></div>'
+      + '<div class="fc-r"><div class="fc-val">34.2 <span class="fu">kWh</span></div><span class="fc-chip cp">ML Extrapolated</span></div>'
       + '</div>'
       + '<div class="fc-row">'
-      + '<div><div class="fc-day">Tomorrow</div><div class="fc-date">Wednesday, Sep 9</div></div>'
-      + '<div class="fc-r"><div class="fc-val">34.4 <span class="fu">kWh</span></div><span class="fc-chip cp">ML Predicted</span></div>'
-      + '</div>'
-      + '<div class="fc-row">'
-      + '<div><div class="fc-day">Sep 10</div><div class="fc-date">Thursday, Sep 10</div></div>'
-      + '<div class="fc-r"><div class="fc-val">34.4 <span class="fu">kWh</span></div><span class="fc-chip cp">ML Predicted</span></div>'
+      + '<div><div class="fc-day">Nov 02</div><div class="fc-date">Monday, Nov 02</div></div>'
+      + '<div class="fc-r"><div class="fc-val">34.3 <span class="fu">kWh</span></div><span class="fc-chip cp">ML Extrapolated</span></div>'
       + '</div>';
     if(metricsPanel) metricsPanel.style.display = 'none';
     renderForecastChart({
-      chart_labels: ['Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
+      chart_labels: ['Sep 06','Sep 07','Sep 08 (Latest)','Nov 01 (Tomorrow)','Nov 02'],
       actual_series: [33.9, 33.9, 35.4, null, null],
-      forecast_series: [null, null, 35.4, 34.4, 34.4]
+      forecast_series: [null, null, null, 34.2, 34.3],
+      is_real_model: true,
+      is_extrapolated_gap: true
     });
   }
 }
@@ -1433,19 +1665,19 @@ function renderForecastChart(data){
       labels: data.chart_labels,
       datasets: [
         {
-          label: 'Actual (kWh)',
+          label: 'Historical Actual (kWh)',
           data: data.actual_series,
           borderColor: '#10b981',
           backgroundColor: 'rgba(16,185,129,.08)',
           fill: true,
           borderWidth: 2.5,
           pointBackgroundColor: '#10b981',
-          pointRadius: [4,4,7,0,0],
+          pointRadius: 5,
           tension: 0.35,
           order: 1
         },
         {
-          label: 'Static Forecast (kWh)',
+          label: data.is_real_model ? (data.is_extrapolated_gap ? 'ML Forecast (Extrapolated)' : 'ML Forecast (kWh)') : 'Static Forecast (kWh)',
           data: data.forecast_series,
           borderColor: '#facc15',
           backgroundColor: 'rgba(250,204,21,.07)',
@@ -1453,7 +1685,7 @@ function renderForecastChart(data){
           borderWidth: 2.5,
           borderDash: [6,4],
           pointBackgroundColor: '#facc15',
-          pointRadius: [0,0,6,6,6],
+          pointRadius: 6,
           tension: 0.35,
           order: 2
         }
@@ -1464,7 +1696,11 @@ function renderForecastChart(data){
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { font: { size: 11, family: 'Inter, sans-serif' }, boxWidth: 12 }
+        },
         tooltip: {
           backgroundColor: '#fff',
           titleColor: '#171717',
@@ -1484,8 +1720,8 @@ function renderForecastChart(data){
         x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 }, color: '#a3a3a3' } },
         y: {
           grid: { color: '#f5f5f5' },
-          min: 30,
-          max: 42,
+          min: 0,
+          suggestedMax: 45,
           ticks: { font: { family: 'Inter', size: 10 }, color: '#a3a3a3', callback: function(v){ return v + ' kWh'; } }
         }
       }
@@ -1708,6 +1944,8 @@ document.addEventListener('keydown', function(e){
   if(e.key === 'Escape'){
     closeBillModal();
     closeCsvModal();
+    closeStatementModal();
+    closeStreamModal();
   }
 });
 
@@ -2108,6 +2346,93 @@ function handleStatementModalOverlayClick(e){
 
 function printStatement(){
   window.print();
+}
+
+/* ── OS STREAM DEMONSTRATION (MODULE 5) ───────────────────────────────────── */
+function openStreamModal(){
+  var overlay = document.getElementById('streamModalOverlay');
+  if(!overlay) return;
+  overlay.classList.add('open');
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  pollStreamStats();
+}
+
+function closeStreamModal(){
+  var overlay = document.getElementById('streamModalOverlay');
+  if(overlay){
+    overlay.classList.remove('open');
+    overlay.style.display = 'none';
+  }
+  document.body.style.overflow = '';
+}
+
+function handleStreamModalOverlayClick(e){
+  if(e.target && e.target.id === 'streamModalOverlay'){
+    closeStreamModal();
+  }
+}
+
+async function pollStreamStats(){
+  try {
+    var s = await API.getStreamStats();
+    var qEl = document.getElementById('streamQueueSize');
+    var bEl = document.getElementById('streamBufferSize');
+    var pEl = document.getElementById('streamTotalProcessed');
+    var bwEl = document.getElementById('streamBatchesWritten');
+    var stEl = document.getElementById('streamConsumerStatus');
+
+    if(qEl) qEl.textContent = s.queue_current_size;
+    if(bEl) bEl.textContent = s.memory_buffer_size;
+    if(pEl) pEl.textContent = s.total_processed;
+    if(bwEl) bwEl.textContent = s.batches_written;
+    if(stEl) stEl.textContent = s.consumer_status === 'active' ? 'Active (Daemon Thread)' : 'Stopped';
+  } catch(e){}
+}
+
+function appendStreamLog(msg){
+  var logBox = document.getElementById('streamTerminalLog');
+  if(!logBox) return;
+  var div = document.createElement('div');
+  div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  logBox.appendChild(div);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+async function runStreamSimulation(){
+  var btn = document.getElementById('btnRunStream');
+  if(btn) btn.disabled = true;
+  appendStreamLog('Spawning 3 concurrent producer threads submitting telemetry...');
+  try {
+    var res = await API.simulateStream(3, 8, 0.04);
+    appendStreamLog(res.message || 'Producers started.');
+    for(var i = 0; i < 6; i++){
+      await new Promise(function(r){ setTimeout(r, 250); });
+      await pollStreamStats();
+    }
+    appendStreamLog('Stream batch committed to SQLite database.');
+    showToast('Concurrent stream processed successfully!');
+  } catch(err){
+    appendStreamLog('Stream error: ' + err.message);
+  } finally {
+    if(btn) btn.disabled = false;
+    await pollStreamStats();
+  }
+}
+
+async function flushStreamBuffer(){
+  var btn = document.getElementById('btnFlushStream');
+  if(btn) btn.disabled = true;
+  try {
+    var res = await API.flushStream();
+    appendStreamLog('Manual flush completed. ' + res.message);
+    await pollStreamStats();
+    showToast('Buffer flushed to SQLite!');
+  } catch(err){
+    appendStreamLog('Flush error: ' + err.message);
+  } finally {
+    if(btn) btn.disabled = false;
+  }
 }
 
 /* ── REFRESH ALL DATA ─────────────────────────────────────────────────────── */

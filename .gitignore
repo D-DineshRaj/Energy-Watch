@@ -19,10 +19,12 @@ build/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+data/*.backup*
 
 # ── Secrets and environment files ────────────────────────────────────────
 .env
 .env.*
+!.env.example
 *.key
 *.pem
 secrets.json

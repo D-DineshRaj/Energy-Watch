@@ -1,7 +1,7 @@
 """Router for anomaly and consumption alerts."""
 from datetime import datetime, timezone
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -72,9 +72,9 @@ def reset_alert(
 
 @router.post("/alerts/detect-anomalies", response_model=AnomalyDetectionResponse)
 def detect_anomalies(
-    meter_id: Optional[str] = None,
-    z_threshold: float = 2.5,
-    min_kwh: float = 4.5,
+    meter_id: Optional[str] = Query(None, description="Smart meter identifier to scan"),
+    z_threshold: float = Query(2.5, description="Z-score anomaly threshold"),
+    min_kwh: float = Query(4.5, description="Minimum kWh threshold for flagging"),
     db: Session = Depends(get_db),
 ):
     """Run statistical anomaly detection over meter readings and generate persistent alerts."""

@@ -13,9 +13,29 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import foreign, relationship
 
 from backend.database import Base
+
+
+class Meter(Base):
+    __tablename__ = "meters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    meter_id = Column(String(50), unique=True, nullable=False, index=True)
+    name = Column(String(100), nullable=False, default="Main Residential Meter")
+    consumer_name = Column(String(100), nullable=False, default="Dinesh Raj")
+    installation_date = Column(Date, nullable=True)
+    meter_type = Column(String(50), nullable=False, default="Smart Single-Phase")
+    sanctioned_load_kw = Column(Float, nullable=False, default=1.0)
+    status = Column(String(20), nullable=False, default="Active")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    readings = relationship(
+        "MeterReading",
+        back_populates="meter",
+        primaryjoin="Meter.meter_id == foreign(MeterReading.meter_id)",
+    )
 
 
 class MeterReading(Base):
@@ -40,6 +60,11 @@ class MeterReading(Base):
         CheckConstraint("reading_type IN ('hourly', 'daily')", name="chk_reading_type_valid"),
     )
 
+    meter = relationship(
+        "Meter",
+        back_populates="readings",
+        primaryjoin="foreign(MeterReading.meter_id) == Meter.meter_id",
+    )
     alerts = relationship("Alert", back_populates="reading")
 
 

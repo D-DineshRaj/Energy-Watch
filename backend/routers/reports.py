@@ -9,6 +9,7 @@ from backend.schemas import (
     ReportSummaryResponse,
     StatementResponse,
 )
+from backend.services.date_utils import get_current_date
 from backend.services.reports import (
     generate_consumption_summary,
     generate_readings_csv,
@@ -89,7 +90,7 @@ def get_energy_statement(
 
         return StatementResponse(
             statement_id=stmt_id,
-            statement_date=datetime.now().strftime("%Y-%m-%d"),
+            statement_date=get_current_date().strftime("%Y-%m-%d"),
             consumer_name="Household Consumer (Simulated)",
             meter_id=summary["meter_id"],
             period_start=summary["start_date"],

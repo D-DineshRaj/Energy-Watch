@@ -8,7 +8,8 @@ python-multipart>=0.0.20
 # ── Forecasting / ML Dependencies (Python 3.14 compatible) ─────────────────
 scikit-learn>=1.5.2
 numpy>=2.0.2
-# pandas>=2.2.3
+pandas>=2.2.0
+statsmodels>=0.15.0
 
 # ── Phase 6 — Testing (to be added during Phase 6) ─────────────────────────
 # pytest>=8.3.3

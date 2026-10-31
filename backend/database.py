@@ -34,6 +34,29 @@ def get_db():
 
 
 def init_db():
-    """Create all tables in the database if they do not exist."""
+    """Create all tables in the database if they do not exist and seed default meter."""
+    from datetime import date
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    from backend import models  # ensure models are registered with Base
     Base.metadata.create_all(bind=engine)
+
+    db = SessionLocal()
+    try:
+        meter = db.query(models.Meter).filter(models.Meter.meter_id == "EW-2847-HH").first()
+        if not meter:
+            db.add(
+                models.Meter(
+                    meter_id="EW-2847-HH",
+                    name="Main Residential Meter",
+                    consumer_name="Dinesh Raj",
+                    installation_date=date(2026, 1, 1),
+                    meter_type="Smart Single-Phase Bi-directional",
+                    sanctioned_load_kw=1.0,
+                    status="Active",
+                )
+            )
+            db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()

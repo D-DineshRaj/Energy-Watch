@@ -10,6 +10,26 @@ class HealthResponse(BaseModel):
     database: str
 
 
+class MeterOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    meter_id: str
+    name: str
+    consumer_name: str
+    installation_date: Optional[date] = None
+    meter_type: str
+    sanctioned_load_kw: float
+    status: str
+    created_at: Optional[datetime] = None
+
+
+class MeterDetailOut(MeterOut):
+    readings_count: int = 0
+    latest_reading_time: Optional[datetime] = None
+    latest_reading_kwh: Optional[float] = None
+
+
 class MeterReadingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -41,13 +61,21 @@ class CSVImportResponse(BaseModel):
 
 
 class MetricsResponse(BaseModel):
-    today_kwh: float
-    month_kwh: float
+    today_kwh: Optional[float] = None
+    month_kwh: Optional[float] = None
     tomorrow_forecast_kwh: Optional[float] = None
-    estimated_bill_inr: Optional[float] = None  # Always None in Phase 1 per Correction 4
+    estimated_bill_inr: Optional[float] = None
     tariff_note: str = "Estimated using official APERC LT-I(A) Domestic tariff order for FY 2026-27. Not an official DISCOM bill."
     forecast_is_real_model: bool = False
     data_source: str = "simulated"
+    current_date: Optional[str] = None
+    latest_reading_date: Optional[str] = None
+    today_has_data: bool = False
+    month_has_data: bool = False
+    today_message: Optional[str] = None
+    month_message: Optional[str] = None
+    historical_reference_kwh: Optional[float] = 420.0
+    historical_reference_note: Optional[str] = "Historical baseline: 420 kWh in September 2026."
 
 
 class ForecastDay(BaseModel):
@@ -57,6 +85,9 @@ class ForecastDay(BaseModel):
     lower_bound_kwh: Optional[float] = None
     upper_bound_kwh: Optional[float] = None
     is_peak: bool = False
+    forecast_date: Optional[str] = None
+    status: Optional[str] = "predicted"
+    is_extrapolated_gap: Optional[bool] = False
 
 
 class ForecastResponse(BaseModel):
@@ -83,6 +114,12 @@ class ForecastResponse(BaseModel):
     baseline_rmse: Optional[float] = None
     data_source: Optional[str] = "simulated"
     limitations: Optional[str] = None
+    current_date: Optional[str] = None
+    latest_historical_date: Optional[str] = None
+    gap_days: Optional[int] = None
+    is_extrapolated_gap: Optional[bool] = False
+    forecast_status: Optional[str] = "extrapolated_forward"
+    forecast_generation_date: Optional[str] = None
 
 
 class ConsumptionResponse(BaseModel):

@@ -237,8 +237,8 @@ class TestBillingAPI(unittest.TestCase):
         self.assertEqual(res.status_code, 422)
 
     def test_metrics_endpoint_includes_estimated_bill(self):
-        """GET /api/metrics returns populated estimated_bill_inr matching 420 kWh bill."""
-        res = self.client.get("/api/metrics")
+        """GET /api/metrics with historical reference date returns populated estimated_bill_inr matching 420 kWh bill."""
+        res = self.client.get("/api/metrics?current_date=2026-09-08")
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertEqual(data["today_kwh"], 35.4)
