@@ -126,9 +126,10 @@ class ConsumptionResponse(BaseModel):
     range: str
     labels: List[str]
     actual: List[Optional[float]]
-    forecast: List[Optional[float]]
+    forecast: List[Optional[float]] = []
     unit: str = "kWh"
-    source: str = "simulated"
+    source: str = "sqlite"
+    anomalies: List[bool] = []
 
 
 class AlertOut(BaseModel):

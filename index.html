@@ -539,9 +539,9 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <span id="ci">Loading consumption trends...</span>
     </div>
     <div class="legend">
-      <div class="li"><div class="lb" style="background:rgba(16,185,129,.8)"></div><span>Actual (kWh)</span></div>
-      <div class="li"><div class="ll" style="border-color:#facc15"></div><span>Forecast overlay</span></div>
-      <div class="li" style="margin-left:auto"><span style="font-size:11px;color:var(--n-400)">Data source: SQLite DB (Simulated)</span></div>
+      <div class="li"><div class="lb" style="background:rgba(16,185,129,.78)"></div><span>Normal (kWh)</span></div>
+      <div class="li"><div class="lb" style="background:rgba(245,158,11,.88)"></div><span>Anomalous (kWh)</span></div>
+      <div class="li" style="margin-left:auto"><span style="font-size:11px;color:var(--n-400)">Data source: SQLite DB</span></div>
     </div>
   </div>
 
@@ -714,12 +714,12 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
   <!-- COST INSIGHTS -->
   <div class="card">
     <div class="card-ttl">Cost Insights (Preliminary)</div>
-    <div class="cost-amt"><span class="cur">&#8377;</span>3,250</div>
-    <div class="cost-pred">Predicted month-end: <strong>&#8377;3,480</strong></div>
+    <div class="cost-amt" id="costAmt"><span class="cur">&#8377;</span>--</div>
+    <div class="cost-pred" id="costPred">Configured Monthly Budget: <strong>&#8377;10,000</strong></div>
     <div class="cost-track"><div class="cost-bar" id="cbar"></div></div>
     <div class="cost-row">
-      <span>74% of predicted</span>
-      <span>&#8377;230 remaining</span>
+      <span id="costPctText">--% of budget</span>
+      <span id="costRemText">&#8377;-- remaining</span>
     </div>
     <div class="cost-note">
       ⚠️ <strong>Notice:</strong> Estimated using official APERC LT-I(A) Domestic tariff order for FY 2026-27. Not an official DISCOM bill.
@@ -1151,8 +1151,10 @@ var API = {
     if(!res.ok) throw new Error('Metrics API error ' + res.status);
     return res.json();
   },
-  getConsumption: async function(range){
-    var res = await fetch(API_BASE_URL + '/api/consumption?range=' + encodeURIComponent(range));
+  getConsumption: async function(range, currentDate){
+    var query = '?range=' + encodeURIComponent(range);
+    if(currentDate) query += '&current_date=' + encodeURIComponent(currentDate);
+    var res = await fetch(API_BASE_URL + '/api/consumption' + query);
     if(!res.ok) throw new Error('Consumption API error ' + res.status);
     return res.json();
   },
@@ -1410,12 +1412,87 @@ async function loadMetrics(){
       }
     }
 
+    // Dynamic Cost Insights Progress Bar Update
+    if(data.month_has_data && data.estimated_bill_inr !== null){
+      updateBudgetProgressBar(data.estimated_bill_inr, MONTHLY_BUDGET_INR);
+    } else {
+      updateBudgetProgressBar(null, MONTHLY_BUDGET_INR);
+    }
+
     // Pre-cache bill breakdown for instant modal view
     try {
       cachedBillData = await API.getBillEstimate(data.month_has_data ? data.month_kwh : 420, 1.0);
     } catch(e){}
   } catch(err) {
     console.warn('Metrics endpoint failed, using fallback:', err);
+    updateBudgetProgressBar(null, MONTHLY_BUDGET_INR);
+  }
+}
+
+/* ── DYNAMIC BUDGET PROGRESS BAR HELPER ───────────────────────────────────── */
+var MONTHLY_BUDGET_INR = 10000; // Configured demonstration monthly budget threshold (INR), not a regulatory tariff parameter
+
+function updateBudgetProgressBar(billInr, budgetInr){
+  budgetInr = (typeof budgetInr === 'number' && budgetInr > 0) ? budgetInr : MONTHLY_BUDGET_INR;
+  var amtEl = document.getElementById('costAmt');
+  var predEl = document.getElementById('costPred');
+  var barEl = document.getElementById('cbar');
+  var pctEl = document.getElementById('costPctText');
+  var remEl = document.getElementById('costRemText');
+
+  if(predEl){
+    predEl.innerHTML = 'Configured Monthly Budget: <strong>\u20B9' + Math.round(budgetInr).toLocaleString('en-IN') + '</strong>';
+  }
+
+  if(billInr == null || isNaN(billInr) || billInr < 0){
+    if(amtEl) amtEl.innerHTML = '<span class="cur">\u20B9</span>--';
+    if(barEl){ barEl.style.width = '0%'; barEl.style.background = 'var(--em-500)'; }
+    if(pctEl){ pctEl.textContent = 'No bill calculated'; pctEl.style.color = ''; pctEl.style.fontWeight = ''; }
+    if(remEl){ remEl.textContent = '\u20B9' + Math.round(budgetInr).toLocaleString('en-IN') + ' remaining'; remEl.style.color = ''; remEl.style.fontWeight = ''; }
+    return;
+  }
+
+  var billVal = Number(billInr);
+  var pct = (billVal / budgetInr) * 100;
+  var rem = budgetInr - billVal;
+
+  if(amtEl){
+    amtEl.innerHTML = '<span class="cur">\u20B9</span>' + Math.round(billVal).toLocaleString('en-IN');
+  }
+
+  if(pct > 100){
+    // Exceeded budget threshold: set full bar with vivid alert styling
+    var overAmt = Math.abs(rem);
+    if(barEl){
+      barEl.style.width = '100%';
+      barEl.style.background = '#ef4444';
+    }
+    if(pctEl){
+      pctEl.textContent = pct.toFixed(1) + '% of budget (Exceeded)';
+      pctEl.style.color = '#dc2626';
+      pctEl.style.fontWeight = '600';
+    }
+    if(remEl){
+      remEl.textContent = '\u20B9' + Math.round(overAmt).toLocaleString('en-IN') + ' over budget';
+      remEl.style.color = '#dc2626';
+      remEl.style.fontWeight = '600';
+    }
+  } else {
+    // Normal progress within budget
+    if(barEl){
+      barEl.style.width = Math.max(0, Math.min(100, pct)).toFixed(1) + '%';
+      barEl.style.background = 'var(--em-500)';
+    }
+    if(pctEl){
+      pctEl.textContent = pct.toFixed(1) + '% of budget';
+      pctEl.style.color = '';
+      pctEl.style.fontWeight = '';
+    }
+    if(remEl){
+      remEl.textContent = '\u20B9' + Math.round(rem).toLocaleString('en-IN') + ' remaining';
+      remEl.style.color = '';
+      remEl.style.fontWeight = '';
+    }
   }
 }
 
@@ -1428,22 +1505,22 @@ async function loadConsumption(range){
     renderConsumptionChart(range, data);
   } catch(err) {
     console.warn('Consumption API failed, using fallback:', err);
-    // Fallback static dataset
+    // Fallback dataset
     var fallback = {
       '7d': {
-        labels: ['Sep 2','Sep 3','Sep 4','Sep 5','Sep 6','Sep 7','Sep 8','Sep 9','Sep 10'],
-        actual: [32.1,29.8,34.5,31.2,33.9,33.9,35.4,null,null],
-        forecast: [null,null,null,null,null,null,35.4,37.2,38.1]
+        labels: ['Oct 25','Oct 26','Oct 27','Oct 28','Oct 29','Oct 30','Oct 31'],
+        actual: [35.37,33.22,33.12,32.78,32.98,33.33,34.71],
+        anomalies: [false,false,false,false,false,false,false]
       },
       '30d': {
-        labels: ['10 Aug','13 Aug','16 Aug','19 Aug','22 Aug','25 Aug','28 Aug','31 Aug','3 Sep','6 Sep','8 Sep'],
-        actual: [28.2,31.8,32.4,29.9,30.2,30.8,30.3,31.9,31.2,34.2,35.4],
-        forecast: []
+        labels: ['Oct 2','Oct 5','Oct 10','Oct 15','Oct 20','Oct 25','Oct 31'],
+        actual: [33.41,32.74,33.6,33.8,33.5,35.37,34.71],
+        anomalies: [false,false,false,false,false,false,false]
       },
       '3m': {
-        labels: ['Jul 1','Jul 15','Jul 29','Aug 12','Aug 26','Sep 8'],
-        actual: [26.1,28.2,28.8,30.2,32.4,35.4],
-        forecast: []
+        labels: ['Sep 5','Sep 12','Sep 19','Oct 3','Oct 10','Oct 17','Oct 24','Oct 31'],
+        actual: [31.9,33.1,36.57,34.06,33.6,33.65,33.69,33.64],
+        anomalies: [false,true,false,false,false,false,false,false]
       }
     };
     renderConsumptionChart(range, fallback[range] || fallback['7d']);
@@ -1454,32 +1531,35 @@ async function loadConsumption(range){
 
 function renderConsumptionChart(range, d){
   var ctx = document.getElementById('conChart').getContext('2d');
+
+  var barColors = (d.actual || []).map(function(val, idx){
+    if(d.anomalies && d.anomalies[idx]){
+      return 'rgba(245,158,11,0.88)'; // Amber for anomalous reading
+    }
+    return 'rgba(16,185,129,0.78)'; // Green for normal reading
+  });
+
+  var barBorders = (d.actual || []).map(function(val, idx){
+    if(d.anomalies && d.anomalies[idx]){
+      return '#f59e0b';
+    }
+    return '#10b981';
+  });
+
   var ds = [
     {
       type: 'bar',
-      label: 'Actual (kWh)',
+      label: 'Consumption',
       data: d.actual,
-      backgroundColor: 'rgba(16,185,129,.78)',
+      backgroundColor: barColors,
+      borderColor: barBorders,
+      borderWidth: 1,
       borderRadius: 5,
       borderSkipped: false,
-      order: 2
+      order: 1
     }
   ];
-  if(d.forecast && d.forecast.length > 0 && range === '7d'){
-    ds.push({
-      type: 'line',
-      label: 'Forecast Baseline (kWh)',
-      data: d.forecast,
-      borderColor: '#facc15',
-      backgroundColor: 'transparent',
-      borderWidth: 2.2,
-      borderDash: [6,4],
-      pointBackgroundColor: '#facc15',
-      pointRadius: [0,0,0,0,0,0,5,5,5],
-      tension: 0.35,
-      order: 1
-    });
-  }
+
   if(conChart) conChart.destroy();
   conChart = new Chart(ctx, {
     data: { labels: d.labels, datasets: ds },
@@ -1499,7 +1579,12 @@ function renderConsumptionChart(range, d){
           cornerRadius: 8,
           callbacks: {
             label: function(c){
-              return c.raw != null ? ' ' + c.dataset.label + ': ' + c.raw + ' kWh' : null;
+              if(c.raw == null) return null;
+              var isAno = d.anomalies && d.anomalies[c.dataIndex];
+              if(isAno){
+                return ' ' + c.raw + ' kWh (⚠️ Anomalous Reading)';
+              }
+              return ' ' + c.raw + ' kWh';
             }
           }
         }
@@ -1517,12 +1602,19 @@ function renderConsumptionChart(range, d){
 
   // Dynamic insight
   var ci = document.getElementById('ci');
-  if(range === '7d'){
-    ci.innerHTML = '7-Day Trend: Average daily usage is <strong>33.3 kWh</strong>. Noticeable peak observed on Sep 8 (Simulated data).';
-  } else if(range === '30d'){
-    ci.innerHTML = '30-Day Monthly Trend: Average daily usage is <strong>31.8 kWh</strong>. Steady baseline with expected summer variance.';
-  } else {
-    ci.innerHTML = 'Quarterly Overview: Consumption grew <strong>35.6%</strong> from July to September reflecting seasonal temperature shifts.';
+  if(ci){
+    var validVals = (d.actual || []).filter(function(v){ return v != null; });
+    var avgVal = validVals.length ? (validVals.reduce(function(a,b){ return a+b; }, 0) / validVals.length).toFixed(1) : '--';
+    var anoCount = (d.anomalies || []).filter(Boolean).length;
+    var anoText = anoCount > 0 ? (' &middot; <span style="color:#d97706;font-weight:600">' + anoCount + ' anomal' + (anoCount === 1 ? 'y' : 'ies') + ' flagged</span>') : '';
+
+    if(range === '7d'){
+      ci.innerHTML = '7-Day Trend: Average daily usage is <strong>' + avgVal + ' kWh</strong>' + anoText + '.';
+    } else if(range === '30d'){
+      ci.innerHTML = '30-Day Monthly Trend: Average daily usage is <strong>' + avgVal + ' kWh</strong>' + anoText + '.';
+    } else {
+      ci.innerHTML = 'Quarterly Overview: Average weekly daily usage is <strong>' + avgVal + ' kWh</strong>' + anoText + '.';
+    }
   }
 }
 
@@ -2456,10 +2548,6 @@ async function initApp(){
   await loadReadings('today');
   await loadAlerts();
   await loadReportSummary();
-  setTimeout(function(){
-    var bar = document.getElementById('cbar');
-    if(bar) bar.style.width = '74%';
-  }, 400);
 }
 
 window.addEventListener('DOMContentLoaded', initApp);
