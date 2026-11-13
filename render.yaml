@@ -8,7 +8,7 @@ services:
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9
+        value: 3.12.9
       - key: CORS_ORIGINS
         value: https://energywatch.vercel.app
       - key: ENERGYWATCH_CURRENT_DATE

@@ -49,10 +49,21 @@ def get_consumption(
         else:
             ref_date = cur
 
-    # 2. Gather alert metadata to identify anomalous readings
-    alerts = db.query(Alert).all()
-    alert_reading_ids = {a.reading_id for a in alerts if a.reading_id is not None}
-    alert_dates = {a.triggered_at.date() for a in alerts if a.triggered_at is not None}
+    # 2. Gather alert metadata to identify anomalous readings for THIS meter only.
+    # Join Alert → MeterReading to filter by meter_id, preventing cross-meter contamination.
+    meter_reading_ids = {
+        r.id
+        for r in db.query(MeterReading).filter(MeterReading.meter_id == meter).all()
+    }
+    alerts = (
+        db.query(Alert)
+        .filter(Alert.reading_id.in_(meter_reading_ids) | Alert.reading_id.is_(None))
+        .all()
+    )
+    # For meter-scoped alerts only, build lookup sets
+    meter_alerts = [a for a in alerts if a.reading_id in meter_reading_ids]
+    alert_reading_ids = {a.reading_id for a in meter_alerts if a.reading_id is not None}
+    alert_dates = {a.triggered_at.date() for a in meter_alerts if a.triggered_at is not None}
 
     labels: List[str] = []
     actual: List[Optional[float]] = []

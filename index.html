@@ -1137,7 +1137,11 @@ function countUp(el, target, dec, pre, dur){
 }
 
 /* ── API CLIENT & DEPLOYMENT BASE URL ─────────────────────────────────────── */
-var API_BASE_URL = window.ENERGYWATCH_API_BASE || localStorage.getItem('ew_api_base') || '';
+var API_BASE_URL = window.ENERGYWATCH_API_BASE
+  || localStorage.getItem('ew_api_base')
+  || ((['localhost','127.0.0.1'].indexOf(window.location.hostname) === -1)
+      ? 'https://energywatch-backend.onrender.com'
+      : '');
 
 var API = {
   getHealth: async function(){
