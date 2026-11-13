@@ -373,7 +373,7 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <p id="dtxt">Loading date and time...</p>
       <div style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;font-weight:500;color:var(--em-800);background:var(--em-50);border:1px solid var(--em-200);border-radius:20px;padding:3px 10px">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--em-600);display:inline-block"></span>
-        Simulated Telemetry &mdash; Current Date: 31 October 2026 &middot; Historical Data Available Through: 17 September 2026
+        <span id="telemetryLabel">Simulated Telemetry &mdash; Current Date: 31 October 2026 &middot; Historical Data Available Through: 31 October 2026</span>
       </div>
     </div>
     <div class="status-chip" id="statusChip" onclick="checkBackendHealth()" title="Click to test live backend connection">
@@ -616,14 +616,14 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
           <label style="font-size:12px;font-weight:600;color:var(--n-700)">Date Range:</label>
           <input type="date" id="repStartDate" value="2026-09-01" style="padding:5px 8px;border:1px solid var(--n-200);border-radius:6px;font-size:12px;font-family:inherit">
           <span style="font-size:12px;color:var(--n-400)">to</span>
-          <input type="date" id="repEndDate" value="2026-09-17" style="padding:5px 8px;border:1px solid var(--n-200);border-radius:6px;font-size:12px;font-family:inherit">
+          <input type="date" id="repEndDate" value="2026-10-31" style="padding:5px 8px;border:1px solid var(--n-200);border-radius:6px;font-size:12px;font-family:inherit">
           <button class="fc2" onclick="loadReportSummary()" style="padding:5px 12px;background:var(--em-800);color:#fff;border:none;font-weight:600;border-radius:6px;cursor:pointer">Apply Filter</button>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="font-size:11px;color:var(--n-400)">Presets:</span>
-          <button class="fc2" onclick="applyReportPreset('7d',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">Last 7 Days</button>
-          <button class="fc2" onclick="applyReportPreset('month',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">Sep 2026</button>
-          <button class="fc2 active" onclick="applyReportPreset('all',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">All Available</button>
+          <button class="fc2" onclick="applyReportPreset('7d',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">Oct Last 7 Days</button>
+          <button class="fc2" onclick="applyReportPreset('month',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">Oct 2026</button>
+          <button class="fc2 active" onclick="applyReportPreset('all',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">All Available (Sep–Oct)</button>
         </div>
       </div>
     </div>
@@ -1427,6 +1427,25 @@ async function loadMetrics(){
     try {
       cachedBillData = await API.getBillEstimate(data.month_has_data ? data.month_kwh : 420, 1.0);
     } catch(e){}
+
+    // Update telemetry label dynamically from backend response
+    var telLabel = document.getElementById('telemetryLabel');
+    if(telLabel && data.current_date){
+      var curDateStr = data.current_date;             // e.g. "2026-10-31"
+      var latestStr  = data.latest_reading_date || curDateStr;
+      // Format as "31 October 2026" style
+      function fmtDate(iso){
+        try {
+          var parts = iso.split('-');
+          var d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+          return d.toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+        } catch(e){ return iso; }
+      }
+      telLabel.textContent = 'Simulated Telemetry \u2014 Data Anchor: '
+        + fmtDate(curDateStr)
+        + ' \u00B7 Latest Reading: '
+        + fmtDate(latestStr);
+    }
   } catch(err) {
     console.warn('Metrics endpoint failed, using fallback:', err);
     updateBudgetProgressBar(null, MONTHLY_BUDGET_INR);
@@ -2211,8 +2230,12 @@ async function submitCsvUpload(){
       resBox.style.color = '#92400e';
       resBox.innerHTML = '<strong>Notice:</strong> ' + result.message;
     }
-    showToast('Imported ' + result.imported_count + ' readings from ' + (result.filename || 'CSV'));
-    loadReadings(currentFilter);
+    var alertInfo = (result.alerts_created > 0)
+      ? ' <span style="color:#b45309;font-weight:600">⚠ ' + result.alerts_created + ' anomaly alert(s) generated.</span>' : '';
+    if(result.imported_count > 0) resBox.innerHTML += alertInfo;
+    showToast('✔ Imported ' + result.imported_count + ' readings' + (result.alerts_created > 0 ? ' · ' + result.alerts_created + ' anomaly alert(s)' : ''));
+    /* Refresh all dashboard sections so consumption chart, metrics, alerts and reports reflect the new data */
+    await refreshAllData();
   } catch(err){
     resBox.style.display = 'block';
     resBox.style.background = '#fef2f2';
@@ -2280,14 +2303,14 @@ function applyReportPreset(preset, btn){
   var eInput = document.getElementById('repEndDate');
 
   if(preset === '7d'){
-    sInput.value = '2026-09-02';
-    eInput.value = '2026-09-08';
+    sInput.value = '2026-10-25';
+    eInput.value = '2026-10-31';
   } else if(preset === 'month'){
-    sInput.value = '2026-09-01';
-    eInput.value = '2026-09-30';
+    sInput.value = '2026-10-01';
+    eInput.value = '2026-10-31';
   } else if(preset === 'all'){
     sInput.value = '2026-09-01';
-    eInput.value = '2026-09-17';
+    eInput.value = '2026-10-31';
   }
   loadReportSummary();
 }
@@ -2295,7 +2318,8 @@ function applyReportPreset(preset, btn){
 function downloadReadingsCsv(){
   var s = document.getElementById('repStartDate').value;
   var e = document.getElementById('repEndDate').value;
-  var url = '/api/reports/export-csv?meter_id=EW-2847-HH';
+  /* Prefix with API_BASE_URL so the request goes to the Render backend on Vercel deployments */
+  var url = API_BASE_URL + '/api/reports/export-csv?meter_id=EW-2847-HH';
   if(s) url += '&start_date=' + encodeURIComponent(s);
   if(e) url += '&end_date=' + encodeURIComponent(e);
 

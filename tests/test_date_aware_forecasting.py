@@ -331,10 +331,15 @@ class TestFrontendContractAndModalIntegrity(unittest.TestCase):
         self.assertIn("View / Print Statement", self.html)
 
     def test_simulation_badge_reference_clarity(self):
-        """Header or welcome area must clearly disclose simulated telemetry and reference dates."""
+        """Header or welcome area must clearly disclose simulated telemetry.
+        The telemetry label is now populated dynamically from /api/metrics at runtime,
+        so the HTML source contains the element ID and the static initial disclosure text
+        rather than a hardcoded date string.
+        """
         self.assertIn("Simulated Telemetry", self.html)
         self.assertIn("31 October 2026", self.html)
-        self.assertIn("17 September 2026", self.html)
+        # Dynamic dates are populated via JS from the backend; verify the element is present
+        self.assertIn("telemetryLabel", self.html)
 
 
 if __name__ == "__main__":
