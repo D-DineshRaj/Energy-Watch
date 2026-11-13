@@ -274,7 +274,7 @@ class TestReportSummariesAndReadings(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertIn("statement_date", data)
-        self.assertEqual(data["statement_date"], "2026-10-31")
+        self.assertEqual(data["statement_date"], get_current_date().strftime("%Y-%m-%d"))
         self.assertGreater(data["total_kwh"], 0.0)
 
     def test_readings_filters_use_current_date(self):
@@ -332,12 +332,11 @@ class TestFrontendContractAndModalIntegrity(unittest.TestCase):
 
     def test_simulation_badge_reference_clarity(self):
         """Header or welcome area must clearly disclose simulated telemetry.
-        The telemetry label is now populated dynamically from /api/metrics at runtime,
+        The telemetry label is populated dynamically from /api/metrics at runtime,
         so the HTML source contains the element ID and the static initial disclosure text
         rather than a hardcoded date string.
         """
         self.assertIn("Simulated Telemetry", self.html)
-        self.assertIn("31 October 2026", self.html)
         # Dynamic dates are populated via JS from the backend; verify the element is present
         self.assertIn("telemetryLabel", self.html)
 

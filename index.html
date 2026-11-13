@@ -20,10 +20,11 @@
   --sh-md:0 4px 14px rgba(0,0,0,.09),0 2px 4px rgba(0,0,0,.04);
   --r:10px;--rs:6px
 }
-html{scroll-behavior:smooth;scroll-padding-top:75px}
-body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);color:var(--n-900);font-size:14px;line-height:1.5;min-height:100vh}
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-thumb{background:var(--n-200);border-radius:3px}
+html{scroll-behavior:smooth;scroll-padding-top:80px;overflow-x:hidden}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);color:var(--n-900);font-size:14px;line-height:1.5;min-height:100vh;overflow-x:hidden;width:100%}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8}
 
 /* NAVBAR */
 .navbar{position:fixed;top:0;left:0;right:0;z-index:100;height:60px;background:var(--white);border-bottom:1px solid var(--n-200);display:flex;align-items:center;justify-content:space-between;padding:0 28px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
@@ -53,10 +54,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);colo
 .demo-btn:hover{background:rgba(255,255,255,.28)}
 
 /* LAYOUT */
-.page-wrapper{padding-top:60px;min-height:100vh}
-.content-grid{display:grid;grid-template-columns:1fr 310px;gap:24px;max-width:1400px;margin:0 auto;padding:24px 28px 48px;align-items:start}
-.main-col{display:flex;flex-direction:column;gap:24px;min-width:0}
-.right-panel{display:flex;flex-direction:column;gap:20px;position:sticky;top:84px}
+.page-wrapper{padding-top:60px;min-height:100vh;width:100%}
+.content-grid{display:grid;grid-template-columns:1fr 320px;gap:24px;max-width:1440px;margin:0 auto;padding:24px 28px 60px;align-items:start;width:100%}
+.main-col{display:flex;flex-direction:column;gap:24px;min-width:0;width:100%}
+.right-panel{display:flex;flex-direction:column;gap:20px;width:100%;min-width:0}
 
 /* CARD */
 .card{background:var(--white);border:1px solid var(--n-200);border-radius:var(--r);box-shadow:var(--sh-sm);padding:20px;transition:box-shadow .2s,border-color .2s;position:relative}
@@ -105,8 +106,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);colo
 .sim-badge{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--n-100);color:var(--n-700);border:1px solid var(--n-200);padding:3px 8px;border-radius:4px}
 
 /* FORECAST */
-.fc-grid{display:grid;grid-template-columns:290px 1fr;gap:28px;align-items:start}
-.fc-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--n-100)}
+.fc-grid{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start;width:100%}
+.fc-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--n-100)}
 .fc-row:last-child{border-bottom:none}
 .fc-day{font-size:13px;font-weight:600;color:var(--n-700)}
 .fc-date{font-size:11px;color:var(--n-400);margin-top:1px}
@@ -116,9 +117,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page-bg);colo
 .fc-chip{font-size:10px;font-weight:600;padding:3px 9px;border-radius:10px}
 .ca{background:var(--em-100);color:var(--em-800)}
 .cp{background:#fefce8;color:#854d0e;border:1px dashed #fbbf24}
-.fc-insight{margin-top:18px;display:flex;align-items:flex-start;gap:10px;background:var(--em-50);border:1px solid var(--em-100);border-radius:var(--rs);padding:11px 14px}
+.fc-insight{margin-top:14px;display:flex;align-items:flex-start;gap:10px;background:var(--em-50);border:1px solid var(--em-100);border-radius:var(--rs);padding:11px 14px}
 .fc-insight p{font-size:12px;color:var(--em-800);font-weight:500;line-height:1.55}
-.ch-wrap{position:relative;height:185px}
+/* Forecast chart wrapper — spacious 320px height */
+.ch-wrap{position:relative;height:320px;width:100%}
 
 /* CHART TABS */
 .ch-tabs{display:flex;gap:3px;background:var(--n-100);border-radius:7px;padding:3px}
@@ -235,10 +237,32 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
 .mob-lnk:hover,.mob-lnk.active{background:var(--em-50);color:var(--em-700);font-weight:600}
 
 /* RESPONSIVE */
-@media(max-width:1200px){.metrics-grid{grid-template-columns:repeat(2,1fr)}.fc-grid{grid-template-columns:1fr}}
-@media(max-width:1024px){.content-grid{grid-template-columns:1fr}.right-panel{position:static;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}}
-@media(max-width:768px){.content-grid{padding:18px 16px 40px;gap:18px}.metrics-grid{grid-template-columns:1fr 1fr;gap:12px}.right-panel{grid-template-columns:1fr}.nav-center{display:none}.hamburger{display:flex}.mc-num{font-size:24px}.welcome-strip h1{font-size:18px}}
-@media(max-width:480px){.metrics-grid{grid-template-columns:1fr}.navbar{padding:0 16px}}
+@media(max-width:1200px){
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .fc-grid{grid-template-columns:1fr}
+  .ch-wrap{height:280px}
+}
+@media(max-width:1024px){
+  .content-grid{grid-template-columns:1fr}
+  .right-panel{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+}
+@media(max-width:768px){
+  .content-grid{padding:18px 16px 48px;gap:18px}
+  .metrics-grid{grid-template-columns:1fr 1fr;gap:12px}
+  .right-panel{grid-template-columns:1fr}
+  .nav-center{display:none}
+  .hamburger{display:flex}
+  .mc-num{font-size:24px}
+  .welcome-strip h1{font-size:18px}
+  .fc-grid{grid-template-columns:1fr}
+  .ch-wrap{height:240px}
+  #fcMetricsPanel > div:nth-child(2){grid-template-columns:repeat(2,1fr) !important}
+}
+@media(max-width:480px){
+  .metrics-grid{grid-template-columns:1fr}
+  .navbar{padding:0 16px}
+  #fcMetricsPanel > div:nth-child(2){grid-template-columns:1fr !important}
+}
 
 /* STATEMENT MODAL & PRINT STYLES */
 .stmt-box{background:#fff;border-radius:10px;padding:28px;color:#1e293b}
@@ -373,7 +397,7 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <p id="dtxt">Loading date and time...</p>
       <div style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;font-weight:500;color:var(--em-800);background:var(--em-50);border:1px solid var(--em-200);border-radius:20px;padding:3px 10px">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--em-600);display:inline-block"></span>
-        <span id="telemetryLabel">Simulated Telemetry &mdash; Current Date: 31 October 2026 &middot; Historical Data Available Through: 31 October 2026</span>
+        <span id="telemetryLabel">Simulated Telemetry &mdash; Loading calendar date and latest telemetry reading...</span>
       </div>
     </div>
     <div class="status-chip" id="statusChip" onclick="checkBackendHealth()" title="Click to test live backend connection">
@@ -479,39 +503,41 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
           <span style="font-size:15px;flex-shrink:0">&#128200;</span>
           <p id="fcInsightText">Loading evaluation metrics...</p>
         </div>
-        <div id="fcMetricsPanel" style="margin-top:10px;display:none">
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <div class="mc" style="flex:1;min-width:120px;padding:12px">
-              <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Model MAE</div>
-              <div style="font-size:18px;font-weight:700;color:var(--em-900)" id="fcMAE">--</div>
-              <div style="font-size:10px;color:var(--n-400)">kWh</div>
-            </div>
-            <div class="mc" style="flex:1;min-width:120px;padding:12px">
-              <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Model RMSE</div>
-              <div style="font-size:18px;font-weight:700;color:var(--em-900)" id="fcRMSE">--</div>
-              <div style="font-size:10px;color:var(--n-400)">kWh</div>
-            </div>
-            <div class="mc" style="flex:1;min-width:120px;padding:12px">
-              <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Baseline MAE</div>
-              <div style="font-size:18px;font-weight:700;color:#a3a3a3" id="fcBaseMAE">--</div>
-              <div style="font-size:10px;color:var(--n-400)">kWh (Lag-1)</div>
-            </div>
-            <div class="mc" style="flex:1;min-width:120px;padding:12px">
-              <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Baseline RMSE</div>
-              <div style="font-size:18px;font-weight:700;color:#a3a3a3" id="fcBaseRMSE">--</div>
-              <div style="font-size:10px;color:var(--n-400)">kWh (Lag-1)</div>
-            </div>
-          </div>
-          <div style="margin-top:8px;font-size:11px;color:var(--n-400)" id="fcEvalNote"></div>
-        </div>
       </div>
       <div>
         <div class="ch-wrap"><canvas id="fcChart"></canvas></div>
-        <div class="legend" style="margin-top:10px">
-          <div class="li"><div class="lb" style="background:#10b981"></div><span>Actual Usage (Simulated)</span></div>
-          <div class="li"><div class="ll" style="border-color:#facc15"></div><span>ML Forecast (GBR)</span></div>
+        <div class="legend" style="margin-top:12px;justify-content:flex-end">
+          <div class="li"><div class="lb" style="background:#059669"></div><span>Actual Usage (Recorded)</span></div>
+          <div class="li"><div class="ll" style="border-color:#d97706"></div><span>ML Forecast (ARIMA / GBR)</span></div>
         </div>
       </div>
+    </div>
+    <!-- Model holdout evaluation panel spanning full card width -->
+    <div id="fcMetricsPanel" style="margin-top:20px;display:none;border-top:1px solid var(--n-200);padding-top:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--n-500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Model Accuracy &middot; Chronological Out-of-Sample Holdout Evaluation</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div class="mc" style="padding:12px 14px">
+          <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Model MAE</div>
+          <div style="font-size:18px;font-weight:700;color:var(--em-900)" id="fcMAE">--</div>
+          <div style="font-size:10px;color:var(--n-400)">kWh error</div>
+        </div>
+        <div class="mc" style="padding:12px 14px">
+          <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Model RMSE</div>
+          <div style="font-size:18px;font-weight:700;color:var(--em-900)" id="fcRMSE">--</div>
+          <div style="font-size:10px;color:var(--n-400)">kWh error</div>
+        </div>
+        <div class="mc" style="padding:12px 14px">
+          <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Baseline MAE</div>
+          <div style="font-size:18px;font-weight:700;color:#94a3b8" id="fcBaseMAE">--</div>
+          <div style="font-size:10px;color:var(--n-400)">kWh (Lag-1)</div>
+        </div>
+        <div class="mc" style="padding:12px 14px">
+          <div class="mc-lbl" style="font-size:11px;color:var(--n-400)">Baseline RMSE</div>
+          <div style="font-size:18px;font-weight:700;color:#94a3b8" id="fcBaseRMSE">--</div>
+          <div style="font-size:10px;color:var(--n-400)">kWh (Lag-1)</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--n-500);line-height:1.55" id="fcEvalNote"></div>
     </div>
   </div>
 
@@ -528,7 +554,7 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
         <button class="ch-tab" onclick="switchTab('3m',this)">3 Months</button>
       </div>
     </div>
-    <div style="position:relative;height:240px">
+    <div style="position:relative;height:320px;width:100%">
       <div id="conLoading" class="loading-box" style="position:absolute;inset:0;background:rgba(255,255,255,.7);z-index:5;display:none">
         <span class="spinner"></span> Loading series...
       </div>
@@ -565,7 +591,7 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
       <button class="fc2" onclick="setFilter('week',this)">This Week</button>
       <button class="fc2" onclick="setFilter('all',this)">All Recent</button>
     </div>
-    <div style="overflow-x:auto">
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--n-200);border-radius:8px">
       <table>
         <thead>
           <tr>
@@ -616,14 +642,14 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
           <label style="font-size:12px;font-weight:600;color:var(--n-700)">Date Range:</label>
           <input type="date" id="repStartDate" value="2026-09-01" style="padding:5px 8px;border:1px solid var(--n-200);border-radius:6px;font-size:12px;font-family:inherit">
           <span style="font-size:12px;color:var(--n-400)">to</span>
-          <input type="date" id="repEndDate" value="2026-10-31" style="padding:5px 8px;border:1px solid var(--n-200);border-radius:6px;font-size:12px;font-family:inherit">
+          <input type="date" id="repEndDate" value="2026-11-14" style="padding:5px 8px;border:1px solid var(--n-200);border-radius:6px;font-size:12px;font-family:inherit">
           <button class="fc2" onclick="loadReportSummary()" style="padding:5px 12px;background:var(--em-800);color:#fff;border:none;font-weight:600;border-radius:6px;cursor:pointer">Apply Filter</button>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="font-size:11px;color:var(--n-400)">Presets:</span>
-          <button class="fc2" onclick="applyReportPreset('7d',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">Oct Last 7 Days</button>
-          <button class="fc2" onclick="applyReportPreset('month',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">Oct 2026</button>
-          <button class="fc2 active" onclick="applyReportPreset('all',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">All Available (Sep–Oct)</button>
+          <button class="fc2" onclick="applyReportPreset('7d',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">Last 7 Days</button>
+          <button class="fc2" onclick="applyReportPreset('month',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">This Month</button>
+          <button class="fc2 active" onclick="applyReportPreset('all',this)" style="font-size:11px;padding:3px 8px;cursor:pointer">All Available</button>
         </div>
       </div>
     </div>
@@ -653,7 +679,7 @@ footer{text-align:center;padding:20px 28px;font-size:11px;color:var(--n-400);bor
     </div>
 
     <!-- Daily Breakdown Table -->
-    <div style="overflow-x:auto;border:1px solid var(--n-200);border-radius:8px">
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--n-200);border-radius:8px">
       <table>
         <thead>
           <tr style="background:var(--n-50)">
@@ -1298,6 +1324,42 @@ async function loadMetrics(){
     var data = await API.getMetrics();
     var m1Cards = document.querySelectorAll('.metrics-grid .mc');
 
+    // Dynamic date parsing from backend response
+    var curDateStr = data.current_date || new Date().toISOString().slice(0, 10);
+    window.EW_CURRENT_DATE = curDateStr;
+    var curParts = curDateStr.split('-');
+    var curYear = Number(curParts[0]);
+    var curMonthIdx = Number(curParts[1]) - 1;
+    var curDay = Number(curParts[2]);
+    var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var monthShorts = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var daysShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var curMonthName = monthNames[curMonthIdx];
+    var curMonthShort = monthShorts[curMonthIdx];
+    window.EW_TODAY_LABEL = curDay + ' ' + curMonthShort + ' ' + curYear;
+
+    function fmtIso(iso){
+      if(!iso) return '';
+      try {
+        var p = iso.split('-');
+        var d = new Date(Number(p[0]), Number(p[1])-1, Number(p[2]));
+        return d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+      } catch(e){ return iso; }
+    }
+
+    function fmtIsoFull(iso){
+      if(!iso) return '';
+      try {
+        var p = iso.split('-');
+        var d = new Date(Number(p[0]), Number(p[1])-1, Number(p[2]));
+        return d.toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+      } catch(e){ return iso; }
+    }
+
+    // Tomorrow calculation
+    var tmrwDate = new Date(curYear, curMonthIdx, curDay + 1);
+    var tmrwLabel = daysShort[tmrwDate.getDay()] + ', ' + tmrwDate.getDate() + ' ' + monthShorts[tmrwDate.getMonth()] + ' ' + tmrwDate.getFullYear();
+
     // M1: Today's Usage
     var m1 = document.getElementById('m1');
     var m1Card = m1Cards[0];
@@ -1305,25 +1367,31 @@ async function loadMetrics(){
       countUp(m1, data.today_kwh, 1, '', 700);
       if(m1Card){
         var m1Sub = m1Card.querySelector('.mc-sub');
-        if(m1Sub) m1Sub.textContent = 'Simulated Daily Reading (31 Oct 2026)';
+        if(m1Sub) m1Sub.textContent = 'Daily Reading (' + curDay + ' ' + curMonthShort + ' ' + curYear + ')';
         var m1Badge = m1Card.querySelector('.mc-badge');
         if(m1Badge){
-          m1Badge.textContent = 'Simulated Demo Data';
+          m1Badge.textContent = 'Recorded Usage';
           m1Badge.className = 'mc-badge badge-up';
-          m1Badge.style.background = '#fefce8';
-          m1Badge.style.color = '#854d0e';
-          m1Badge.style.border = '1px dashed #fbbf24';
+          m1Badge.style.background = '#f0fdf4';
+          m1Badge.style.color = '#166534';
+          m1Badge.style.border = '1px solid #bbf7d0';
         }
+        var m1Tag = m1Card.querySelector('.mc-tag');
+        if(m1Tag) m1Tag.innerHTML = '<span class="dy" style="background:#10b981"></span>Active Telemetry';
       }
     } else {
       m1.textContent = '--';
       if(m1Card){
         var m1Sub = m1Card.querySelector('.mc-sub');
-        if(m1Sub) m1Sub.textContent = data.today_message || 'No readings for today (31 Oct 2026)';
+        var latNote = data.latest_reading_date ? (' · Latest: ' + fmtIso(data.latest_reading_date)) : '';
+        if(m1Sub) m1Sub.textContent = data.today_message || ('No telemetry for today (' + curDay + ' ' + curMonthShort + ' ' + curYear + ')' + latNote);
         var m1Badge = m1Card.querySelector('.mc-badge');
-        if(m1Badge){ m1Badge.textContent = 'No Telemetry'; m1Badge.className = 'mc-badge badge-n'; }
+        if(m1Badge){ m1Badge.textContent = 'No Today Telemetry'; m1Badge.className = 'mc-badge badge-n'; }
         var m1Tag = m1Card.querySelector('.mc-tag');
-        if(m1Tag) m1Tag.innerHTML = '<span class="dy" style="background:#94a3b8"></span>No Data Recorded';
+        if(m1Tag){
+          var tagLabel = data.latest_reading_date ? ('Latest: ' + fmtIso(data.latest_reading_date)) : 'No Telemetry';
+          m1Tag.innerHTML = '<span class="dy" style="background:#94a3b8"></span>' + tagLabel;
+        }
       }
     }
 
@@ -1334,21 +1402,23 @@ async function loadMetrics(){
       countUp(m2, data.month_kwh, 0, '', 850);
       if(m2Card){
         var m2Sub = m2Card.querySelector('.mc-sub');
-        if(m2Sub) m2Sub.textContent = 'Simulated MTD Total (1\u201331 Oct 2026)';
+        if(m2Sub) m2Sub.textContent = curMonthName + ' MTD Total (1\u2013' + curDay + ' ' + curMonthShort + ' ' + curYear + ')';
         var m2Badge = m2Card.querySelector('.mc-badge');
         if(m2Badge){
-          m2Badge.textContent = 'Simulated Demo Data';
+          m2Badge.textContent = curMonthShort + ' ' + curYear;
           m2Badge.className = 'mc-badge badge-up';
-          m2Badge.style.background = '#fefce8';
-          m2Badge.style.color = '#854d0e';
-          m2Badge.style.border = '1px dashed #fbbf24';
+          m2Badge.style.background = '#eff6ff';
+          m2Badge.style.color = '#1d4ed8';
+          m2Badge.style.border = '1px solid #bfdbfe';
         }
+        var m2Tag = m2Card.querySelector('.mc-tag');
+        if(m2Tag) m2Tag.innerHTML = '<span class="dy" style="background:#3b82f6"></span>' + curMonthName + ' Total';
       }
     } else {
       m2.textContent = '--';
       if(m2Card){
         var m2Sub = m2Card.querySelector('.mc-sub');
-        if(m2Sub) m2Sub.textContent = data.month_message || 'No October readings recorded';
+        if(m2Sub) m2Sub.textContent = data.month_message || ('No ' + curMonthName + ' readings recorded');
         var m2Badge = m2Card.querySelector('.mc-badge');
         if(m2Badge){ m2Badge.textContent = 'Historical Ref'; m2Badge.className = 'mc-badge badge-n'; }
         var m2Tag = m2Card.querySelector('.mc-tag');
@@ -1363,7 +1433,7 @@ async function loadMetrics(){
       countUp(m3, data.tomorrow_forecast_kwh, 1, '', 700);
       if(m3Card){
         var m3Sub = m3Card.querySelector('.mc-sub');
-        if(m3Sub) m3Sub.textContent = 'Target: Sun, 1 Nov 2026 (ML Prediction)';
+        if(m3Sub) m3Sub.textContent = 'Target: ' + tmrwLabel + ' (ML Prediction)';
         var m3Badge = m3Card.querySelector('.mc-badge');
         if(m3Badge){
           m3Badge.textContent = 'ML Forecast';
@@ -1389,7 +1459,7 @@ async function loadMetrics(){
       m4.style.color = 'var(--em-950)';
       countUp(m4, data.estimated_bill_inr, 0, '\u20B9', 900);
       if(m4Sub){
-        m4Sub.textContent = '\u20B9' + Math.round(data.estimated_bill_inr).toLocaleString('en-IN') + ' for ' + data.month_kwh + ' kWh (APERC LT-I(A))';
+        m4Sub.textContent = '\u20B9' + Math.round(data.estimated_bill_inr).toLocaleString('en-IN') + ' for ' + data.month_kwh + ' kWh (' + curMonthShort + ' APERC LT-I(A))';
         m4Sub.title = data.tariff_note || 'Verified APERC Domestic Telescopic Tariff (FY 2026-27)';
       }
       if(m4Badge){
@@ -1431,20 +1501,10 @@ async function loadMetrics(){
     // Update telemetry label dynamically from backend response
     var telLabel = document.getElementById('telemetryLabel');
     if(telLabel && data.current_date){
-      var curDateStr = data.current_date;             // e.g. "2026-10-31"
-      var latestStr  = data.latest_reading_date || curDateStr;
-      // Format as "31 October 2026" style
-      function fmtDate(iso){
-        try {
-          var parts = iso.split('-');
-          var d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
-          return d.toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
-        } catch(e){ return iso; }
-      }
-      telLabel.textContent = 'Simulated Telemetry \u2014 Data Anchor: '
-        + fmtDate(curDateStr)
-        + ' \u00B7 Latest Reading: '
-        + fmtDate(latestStr);
+      var curStr = fmtIsoFull(data.current_date);
+      var latestStr = data.latest_reading_date ? fmtIsoFull(data.latest_reading_date) : curStr;
+      telLabel.innerHTML = 'Simulated Telemetry &mdash; Current Date: <strong>' + curStr
+        + '</strong> &middot; Latest Reading Available: <strong>' + latestStr + '</strong>';
     }
   } catch(err) {
     console.warn('Metrics endpoint failed, using fallback:', err);
@@ -1741,28 +1801,32 @@ async function loadForecast(modelType){
       var f2 = data.days[1] ? data.days[1].predicted_kwh : f1;
       var pctChange = ((f2 - f1) / f1 * 100).toFixed(1);
       var direction = pctChange >= 0 ? 'increase' : 'decrease';
-      var dateLabel = data.days[0] ? data.days[0].date : 'Nov 01';
+      var dateLabel = data.days[0] ? (data.days[0].day_name + ' (' + data.days[0].forecast_date + ')') : 'Tomorrow';
+      var gapText = data.is_extrapolated_gap
+        ? ('Forward-projected across ' + (data.gap_days || 1) + '-day observation gap from historical data.')
+        : ('Consecutive step forecast trained on ' + (data.training_data_points || 30) + '-day observations.');
       insightEl.innerHTML = 'ML model predicts <strong>' + f1 + ' kWh</strong> for ' + dateLabel
         + ' and <strong>' + Math.abs(pctChange) + '%</strong> ' + direction + ' for the following day'
         + ' (Holdout MAE: ' + (data.mae != null ? data.mae.toFixed(2) : '1.45') + ' kWh). '
-        + (data.is_extrapolated_gap ? 'Forward-projected across ' + (data.gap_days || 53) + '-day observation gap from historical data.' : 'Trained on 30-day series.');
+        + gapText;
     }
 
     // Render forecast chart
     renderForecastChart(data);
   } catch(err) {
     console.warn('Forecast API failed, using fallback:', err);
+    var nowIso = window.EW_CURRENT_DATE || new Date().toISOString().slice(0, 10);
     container.innerHTML = '<div class="fc-row">'
-      + '<div><div class="fc-day">Tomorrow</div><div class="fc-date">Sunday, Nov 01</div></div>'
+      + '<div><div class="fc-day">Tomorrow</div><div class="fc-date">Target: Tomorrow</div></div>'
       + '<div class="fc-r"><div class="fc-val">34.2 <span class="fu">kWh</span></div><span class="fc-chip cp">ML Extrapolated</span></div>'
       + '</div>'
       + '<div class="fc-row">'
-      + '<div><div class="fc-day">Nov 02</div><div class="fc-date">Monday, Nov 02</div></div>'
+      + '<div><div class="fc-day">Day 2</div><div class="fc-date">Target: +2 Days</div></div>'
       + '<div class="fc-r"><div class="fc-val">34.3 <span class="fu">kWh</span></div><span class="fc-chip cp">ML Extrapolated</span></div>'
       + '</div>';
     if(metricsPanel) metricsPanel.style.display = 'none';
     renderForecastChart({
-      chart_labels: ['Sep 06','Sep 07','Sep 08 (Latest)','Nov 01 (Tomorrow)','Nov 02'],
+      chart_labels: ['Previous 2','Previous 1','Latest Recorded','Tomorrow','Day 2'],
       actual_series: [33.9, 33.9, 35.4, null, null],
       forecast_series: [null, null, null, 34.2, 34.3],
       is_real_model: true,
@@ -1782,26 +1846,32 @@ function renderForecastChart(data){
         {
           label: 'Historical Actual (kWh)',
           data: data.actual_series,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16,185,129,.08)',
+          borderColor: '#059669',
+          backgroundColor: 'rgba(5,150,105,0.12)',
           fill: true,
           borderWidth: 2.5,
-          pointBackgroundColor: '#10b981',
-          pointRadius: 5,
-          tension: 0.35,
+          pointBackgroundColor: '#059669',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          tension: 0.28,
           order: 1
         },
         {
-          label: data.is_real_model ? (data.is_extrapolated_gap ? 'ML Forecast (Extrapolated)' : 'ML Forecast (kWh)') : 'Static Forecast (kWh)',
+          label: data.is_real_model ? (data.is_extrapolated_gap ? 'ML Forecast (Projected)' : 'ML Forecast (kWh)') : 'Static Forecast (kWh)',
           data: data.forecast_series,
-          borderColor: '#facc15',
-          backgroundColor: 'rgba(250,204,21,.07)',
+          borderColor: '#d97706',
+          backgroundColor: 'rgba(217,119,6,0.10)',
           fill: true,
           borderWidth: 2.5,
-          borderDash: [6,4],
-          pointBackgroundColor: '#facc15',
+          borderDash: [7, 4],
+          pointBackgroundColor: '#d97706',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
           pointRadius: 6,
-          tension: 0.35,
+          pointHoverRadius: 8,
+          tension: 0.28,
           order: 2
         }
       ]
@@ -1814,30 +1884,55 @@ function renderForecastChart(data){
         legend: {
           display: true,
           position: 'top',
-          labels: { font: { size: 11, family: 'Inter, sans-serif' }, boxWidth: 12 }
+          align: 'end',
+          labels: {
+            font: { size: 11, family: 'Inter, sans-serif' },
+            boxWidth: 14,
+            boxHeight: 3,
+            padding: 14,
+            usePointStyle: false
+          }
         },
         tooltip: {
-          backgroundColor: '#fff',
-          titleColor: '#171717',
-          bodyColor: '#737373',
-          borderColor: '#e5e5e5',
+          backgroundColor: '#ffffff',
+          titleColor: '#0f172a',
+          bodyColor: '#334155',
+          borderColor: '#cbd5e1',
           borderWidth: 1,
-          padding: 10,
+          padding: 12,
           cornerRadius: 8,
+          boxPadding: 4,
           callbacks: {
             label: function(c){
-              return c.raw != null ? ' ' + c.dataset.label + ': ' + c.raw + ' kWh' : null;
+              if(c.raw == null) return null;
+              var isForecast = c.datasetIndex === 1;
+              var prefix = isForecast ? '🔮 ML Prediction: ' : '⚡ Actual Usage: ';
+              return prefix + Number(c.raw).toFixed(1) + ' kWh';
             }
           }
         }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 }, color: '#a3a3a3' } },
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Inter', size: 10 },
+            color: '#64748b',
+            maxRotation: 35,
+            autoSkip: true,
+            maxTicksLimit: 12
+          }
+        },
         y: {
-          grid: { color: '#f5f5f5' },
+          title: { display: true, text: 'Consumption (kWh)', font: { size: 11, family: 'Inter', weight: 600 }, color: '#64748b' },
+          grid: { color: '#f1f5f9', drawBorder: false },
           min: 0,
-          suggestedMax: 45,
-          ticks: { font: { family: 'Inter', size: 10 }, color: '#a3a3a3', callback: function(v){ return v + ' kWh'; } }
+          ticks: {
+            font: { family: 'Inter', size: 10 },
+            color: '#64748b',
+            callback: function(v){ return v + ' kWh'; },
+            maxTicksLimit: 7
+          }
         }
       }
     }
@@ -1851,7 +1946,11 @@ async function loadReadings(filter){
   try {
     var readings = await API.getReadings(filter);
     if(!readings || readings.length === 0){
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--n-400)">No meter readings found for this filter.</td></tr>';
+      var emptyMsg = 'No meter readings found for this filter.';
+      if(filter === 'today'){
+        emptyMsg = 'No telemetry recorded yet for today (' + (window.EW_TODAY_LABEL || 'today') + '). Select <a href="javascript:void(0)" onclick="setFilter(\'yesterday\', document.querySelectorAll(\'.filter-chips .fc2\')[1])" style="color:var(--em-700);font-weight:600">Yesterday</a> or <a href="javascript:void(0)" onclick="setFilter(\'all\', document.querySelectorAll(\'.filter-chips .fc2\')[3])" style="color:var(--em-700);font-weight:600">All Recent</a> to view recorded data.';
+      }
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--n-500)">' + emptyMsg + '</td></tr>';
       return;
     }
     var html = '';
@@ -2302,15 +2401,24 @@ function applyReportPreset(preset, btn){
   var sInput = document.getElementById('repStartDate');
   var eInput = document.getElementById('repEndDate');
 
+  var todayStr = window.EW_CURRENT_DATE || new Date().toISOString().slice(0, 10);
+  var parts = todayStr.split('-');
+  var todayD = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+
   if(preset === '7d'){
-    sInput.value = '2026-10-25';
-    eInput.value = '2026-10-31';
+    var d7 = new Date(todayD);
+    d7.setDate(d7.getDate() - 7);
+    var y = d7.getFullYear();
+    var m = String(d7.getMonth() + 1).padStart(2, '0');
+    var d = String(d7.getDate()).padStart(2, '0');
+    sInput.value = y + '-' + m + '-' + d;
+    eInput.value = todayStr;
   } else if(preset === 'month'){
-    sInput.value = '2026-10-01';
-    eInput.value = '2026-10-31';
+    sInput.value = todayStr.slice(0, 7) + '-01';
+    eInput.value = todayStr;
   } else if(preset === 'all'){
     sInput.value = '2026-09-01';
-    eInput.value = '2026-10-31';
+    eInput.value = todayStr;
   }
   loadReportSummary();
 }
